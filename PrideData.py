@@ -87,6 +87,29 @@ def extract_remove_files(folder):
 
     return extracted_files
 
+def extract_remove_file(f):
+    compressed_file = None
+    extracted_file = None
+
+    # extract gzip archives containing mzid, mgf
+    print("Checking:", f)
+
+    # check for .gz ending
+    if f.endswith('.gz'):
+        compressed_file = f
+        print("Extracting:", f)
+
+        # copy in to out
+        with gzip.open(f, 'rb') as f_in:
+            with open(f[:-3], 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
+                extracted_file = f[:-3]
+    print('\n')
+
+    # Remove compressed files
+    os.remove(compressed_file)
+
+    return extracted_file
 
 def get_projectlist(args):
 
@@ -156,7 +179,6 @@ def get_filelist(projects):
 
     return files
 
-
 def download_files(folder, projects):
     file_name = ''
     files = get_filelist(projects)
@@ -197,12 +219,22 @@ if __name__ == "__main__":
     projects = get_projectlist(args)
     log.info("Found {} matching projects!".format(len(projects)))
     log.debug(projects)
-    files = get_filelist(projects)
-    log.info("{} projects contained files that can be processed!".format(
-        len(files.keys())))
-    log.debug(files)
-    print(projects)
-    downloaded_files = download_files("data_pride", projects)
+
+    downloaded_files = []
+    id = 0
+    folder = 'data_pride'
+    for project in projects:
+        files = get_filelist(project)
+        log.info("{} projects contained files that can be processed!".format(len(files.keys())))
+        log.debug(files)
+        for project in files:
+            for mgf_file, mzid_file in files[project]:
+                if not os.path.exists(folder):
+                    os.mkdir(folder)
+                log.info("Downloaded: {} to {}".format(mgf_file, downloaded_files.append(extract_remove_file(download_file(mgf_file, folder, str(id))))))
+                log.info("Downloaded: {} to {}".format(mzid_file, downloaded_files.append(extract_remove_file(download_file(mzid_file, folder, str(id))))))
+                id += 1
+                break
 
     # for files in downloaded_files:
     #     log.info("Analyzing {}".format(files))

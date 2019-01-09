@@ -1,7 +1,7 @@
 import re
 import xml.etree.cElementTree as ET
 import xml
-
+import csv
 
 def parse_mzident(mzid_file):
     software = []
@@ -19,30 +19,29 @@ def parse_mzident(mzid_file):
         for gchild in specid_child.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationItem'):
                 for pep_child in gchild.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
                     cvparams.append(pep_child.attrib['name'])
-        #for pep_child in specid_child.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
-            #cvparams.append(pep_child.attrib['name'])
         break
     return software, cvparams
 
 
 if __name__ == '__main__':
 
-    out = []
-    count = []
+    stat = dict()
 
-    for i in range(0, 58):
-        print(i)
+    for i in range(0, 96):
         try:
             tup = parse_mzident('data_pride/' + str(i) +  '.mzid')
-            if tup not in out:
-                out.append(tup)
-                count.append(1)
+            if str(tup) not in stat:
+                stat[str(tup)] = {'softwares': tup[0], 'params': tup[1], 'count': 1}
             else:
-                count[out.index(tup)] += 1
+                stat[str(tup)]['count'] +=1
         except (xml.etree.ElementTree.ParseError, ValueError) as err:
             print("File: " + str(i) + " is bad!")
             print(err)
             print(err.args)
 
-    print(out)
-    print(count)
+    with open('stat.csv', 'w', newline='') as csvfile:
+        csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=['softwares', 'params', 'count'])
+        csvwriter.writeheader()
+
+        for key in stat:
+            csvwriter.writerow(stat[key])
