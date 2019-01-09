@@ -10,8 +10,8 @@ import logging
 import xml.etree.cElementTree as ET
 import argparse
 
-from MGFParser import MGFParser
-from mzIdentMLParser import mzIdentMLParser
+from MGFFile import MGFFile
+from mzIdentMLFile import mzIdentMLFile
 from mzIdentMLStat import parse_mzident
 
 log = logging.getLogger(__name__)

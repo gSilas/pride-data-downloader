@@ -1,6 +1,6 @@
 import csv
-from MGFParser import MGFParser
-from mzIdentMLParser import mzIdentMLParser
+from MGFFile import MGFFile
+from mzIdentMLFile import mzIdentMLFile
 
 
 class DatasetCSVWriter(object):
@@ -40,10 +40,10 @@ if __name__ == "__main__":
     mzid_list = []
 
     for i in range(1, 52):
-        mgf_zero = MGFParser()
+        mgf_zero = MGFFile()
         mgf_zero.parse_mgf('data_pride/' + str(i) + '.mgf')
         mgf_list.append(mgf_zero)
-        mzident_zero = mzIdentMLParser()
+        mzident_zero = mzIdentMLFile()
         mzident_zero.parse_mzident('data_pride/' + str(i) + '.mzid')
         mzid_list.append(mzident_zero)
         print(i)

@@ -2,7 +2,7 @@ import re
 import xml.etree.cElementTree as ET
 
 
-class mzIdentMLParser(object):
+class mzIdentMLFile(object):
 
     def __init__(self):
         self.entries = dict()
@@ -11,7 +11,13 @@ class mzIdentMLParser(object):
     def parse_mzident(self, mzid_file):
         # Parsing mzid-file as XML file
         # accessing peptide sequence and spectrum id
-        mzid_xmltree = ET.parse(mzid_file)
+        try:
+            mzid_xmltree = ET.parse(mzid_file)
+        except (ET.ParseError, ValueError) as err:
+            print("File: " + str(mzid_file) + " is bad!")
+            print(err)
+            print(err.args)
+            return self.entries
         
         for spectrumIdentificationResult in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationResult'):
             # Sanity check for valid SpectrumID
@@ -40,7 +46,7 @@ class mzIdentMLParser(object):
         return self.entries
 
 if __name__ == '__main__':
-    mgf_zero = mzIdentMLParser()
-    mgf_zero.parse_mzident('data_pride/10.mzid')
+    mgf_zero = mzIdentMLFile()
+    mgf_zero.parse_mzident('data_pride/26.mzid')
     for key in mgf_zero.entries:
     	print(key, repr(mgf_zero.entries[key]))

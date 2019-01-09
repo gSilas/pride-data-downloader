@@ -1,7 +1,7 @@
 import os
 import re
 
-class MGFParser(object):
+class MGFFile(object):
 
     def __init__(self):
         self.entries = dict()
@@ -73,7 +73,7 @@ class MGFParser(object):
 
 
 if __name__ == '__main__':
-    mgf_zero = MGFParser()
+    mgf_zero = MGFFile()
     mgf_zero.parse_mgf('data_pride/0.mgf')
     for key in mgf_zero.entries:
     	print(repr(mgf_zero.entries[key]))
