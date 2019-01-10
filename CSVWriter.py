@@ -12,17 +12,6 @@ class DatasetCSVWriter(object):
         self.header = header
         print(header)
 
-    def write_csv(self):
-        with open(self.path, 'w', newline='') as csvfile:
-            fieldnames = [
-                "Charge", "sumI",  "norm_high_peak_intensity", "Num_of_Modifications ",
-                          "Pep_Len", "Num_Pl", "mh(group)", " mh(domain)", " uniqueDM", " uniqueDMppm", "Sum_match_intensities",
-                          "Log_sum_match_intensity", "b+_ratio", "b++_ratio", "y+_ratio", "y++_ratio", "b+_count", "b++_count", "y+_count", "y++_count",
-                          "b+_long_count", "b++_long_count", "y+_long_count", "y++_long_count",
-                          "median_matched_frag_ion_errors", "mean_matched_frag_ion_errors", "iqr_matched_frag_ion_errors", "Class_Label"]
-            csvwriter = csv.DictWriter(csvfile, delimiter=',', fieldnames=fieldnames)
-            csvwriter.writeheader()
-
     def write_data_csv(self):
         with open(self.path, 'w', newline='') as csvfile:
             csvwriter = csv.DictWriter(csvfile, delimiter=',', fieldnames=self.header)

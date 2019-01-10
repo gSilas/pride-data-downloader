@@ -1,12 +1,14 @@
 import os
 import re
 
+
 class MGFFile(object):
 
     def __init__(self):
         self.entries = dict()
         self.tokens = dict()
-        self.dict_tokens = ['title', 'pepmass', 'charge', 'mz_list', 'intensity_list']
+        self.dict_tokens = ['title', 'pepmass',
+                            'charge', 'mz_list', 'intensity_list']
         self.mgf_list = []
         self.entries_count = 0
 
@@ -52,7 +54,8 @@ class MGFFile(object):
 
                 spectrum_index = index + self.tokens['LISTS']
                 line = self.mgf_list[spectrum_index]
-                mz_lst = []; intensity_lst = []
+                mz_lst = []
+                intensity_lst = []
 
                 while not 'END IONS' in line:
                     line_split = line.split('\t')
@@ -76,5 +79,5 @@ if __name__ == '__main__':
     mgf_zero = MGFFile()
     mgf_zero.parse_mgf('data_pride/0.mgf')
     for key in mgf_zero.entries:
-    	print(repr(mgf_zero.entries[key]))
+        print(repr(mgf_zero.entries[key]))
     print(mgf_zero.tokens)

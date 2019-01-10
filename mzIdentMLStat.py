@@ -22,7 +22,6 @@ def parse_mzident(mzid_file):
         break
     return software, cvparams
 
-
 if __name__ == '__main__':
 
     stat = dict()
