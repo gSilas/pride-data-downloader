@@ -6,7 +6,7 @@ class mzIdentMLFile(object):
 
     def __init__(self):
         self.entries = dict()
-        self.tokens = ['sequence', 'decoy']
+        self.tokens = ['sequence', 'modification', 'rank', 'decoy', 'params']
 
     def parse_mzident(self, mzid_file):
         # Parsing mzid-file as XML file
@@ -51,8 +51,9 @@ class mzIdentMLFile(object):
                             entry['decoy'] = 0 if evidence.attrib['isDecoy'] == 'false' else 1
 
                     for cvParam in spectrumIdentificationItem.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
-                        entry['params'][cvParam.attrib['name']
-                                        ] = cvParam.attrib['value']
+                        if 'value' in cvParam.attrib:
+                            entry['params'][cvParam.attrib['name']
+                                            ] = cvParam.attrib['value']
 
                     self.entries[spectrumIdentificationResult.attrib['spectrumID']] = entry
 

@@ -2,6 +2,7 @@ import sys
 import json
 import re
 import os
+import csv
 import gzip
 import requests
 import urllib
@@ -10,14 +11,13 @@ import logging
 import xml.etree.cElementTree as ET
 import argparse
 
-from MGFFile import MGFFile
-from mzIdentMLFile import mzIdentMLFile
-from mzIdentMLStat import parse_mzident
+
+import JSONwriter
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler('debug.log')
+handler = logging.FileHandler('debug.log', mode='w')
 handler.setFormatter(logging.Formatter(
     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 handler.setLevel(logging.DEBUG)
@@ -152,9 +152,6 @@ def download_projectlist(projects, folder):
     for project in projects:
 
         if project in os.listdir(folder):
-            log.info("{} was already downloaded!".format(project))
-            downloaded_files += [os.path.join(folder, project, i)
-                                 for i in os.listdir(os.path.join(folder, project))]
             continue
 
         files = get_filelist(project)
@@ -167,18 +164,23 @@ def download_projectlist(projects, folder):
                 for mgf_file, mzid_file in files[key]:
                     extracted_mgf = extract_remove_file(download_file(
                         mgf_file, os.path.join(folder, key)))
-                    downloaded_files.append(extracted_mgf)
                     log.info("Downloaded: {} to {}".format(
                         mgf_file, extracted_mgf))
                     extracted_mzid = extract_remove_file(download_file(
                         mzid_file, os.path.join(folder, key)))
-                    downloaded_files.append(extracted_mzid)
                     log.info("Downloaded: {} to {}".format(
                         mzid_file, extracted_mzid))
+                    downloaded_files.append((project, extracted_mgf, extracted_mzid))
                     break
 
     return downloaded_files
 
+def write_archive_file(archivePath, files):
+    with open(archivePath, 'a+') as fp:
+        csvwriter = csv.writer(fp, delimiter=';')
+        for f in files:
+            csvwriter.writerow(list(f))
+    return archivePath
 
 if __name__ == "__main__":
     log.info("PRIDE download started!")
@@ -205,26 +207,8 @@ if __name__ == "__main__":
 
     downloaded_files = download_projectlist(projects, args.folder)
 
-    with open(os.path.join(args.folder, 'archive'), 'a+') as fp:
-        for path in downloaded_files:
-            fp.write(path + '\n')
+    archivePath = os.path.join(args.folder, 'archive')
+    jsonPath = os.path.join(args.folder, 'psms.json')
+    #write_archive_file(archivePath, downloaded_files)
 
-    out = []
-    count = []
-
-    for files in downloaded_files:
-        if files.split('.')[1] == 'mzid':
-            try:
-                tup = parse_mzident(files)
-                if tup not in out:
-                    out.append(tup)
-                    count.append(1)
-                else:
-                    count[out.index(tup)] += 1
-            except (ET.ParseError, ValueError) as err:
-                print("File: " + str(files) + " is bad!")
-                print(err)
-                print(err.args)
-
-    print(out)
-    print(count)
+    JSONwriter.writeJSONPSMSfromArchive(archivePath, jsonPath)

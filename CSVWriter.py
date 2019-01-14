@@ -14,7 +14,7 @@ class DatasetCSVWriter(object):
 
     def write_data_csv(self):
         with open(self.path, 'w', newline='') as csvfile:
-            csvwriter = csv.DictWriter(csvfile, delimiter=',', fieldnames=self.header)
+            csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=self.header)
             csvwriter.writeheader()
 
             for mgf, mzid in zip(self.mgf_list, self.mzIdent_list):
