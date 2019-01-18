@@ -1,18 +1,16 @@
 import sys
 import json
-import re
 import os
 import csv
 import gzip
-import requests
 import urllib
 import shutil
 import logging
-import xml.etree.cElementTree as ET
 import argparse
+import requests
 
 
-import JSONwriter
+import json_writer
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -170,10 +168,12 @@ def download_projectlist(projects, folder):
                         mzid_file, os.path.join(folder, key)))
                     log.info("Downloaded: {} to {}".format(
                         mzid_file, extracted_mzid))
-                    downloaded_files.append((project, extracted_mgf, extracted_mzid))
+                    downloaded_files.append(
+                        (project, extracted_mgf, extracted_mzid))
                     break
 
     return downloaded_files
+
 
 def write_archive_file(archivePath, files):
     with open(archivePath, 'a+') as fp:
@@ -181,6 +181,7 @@ def write_archive_file(archivePath, files):
         for f in files:
             csvwriter.writerow(list(f))
     return archivePath
+
 
 if __name__ == "__main__":
     log.info("PRIDE download started!")
@@ -209,6 +210,6 @@ if __name__ == "__main__":
 
     archivePath = os.path.join(args.folder, 'archive')
     jsonPath = os.path.join(args.folder, 'psms.json')
-    #write_archive_file(archivePath, downloaded_files)
+    write_archive_file(archivePath, downloaded_files)
 
-    JSONwriter.writeJSONPSMSfromArchive(archivePath, jsonPath)
+    json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
