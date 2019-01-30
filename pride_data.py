@@ -170,7 +170,6 @@ def download_projectlist(projects, folder):
                         mzid_file, extracted_mzid))
                     downloaded_files.append(
                         (project, extracted_mgf, extracted_mzid))
-                    break
 
     return downloaded_files
 

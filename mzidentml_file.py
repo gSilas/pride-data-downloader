@@ -26,19 +26,24 @@ def parse_mzident(mzid_file):
 
             for spectrumIdentificationItem in spectrumIdentificationResult.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationItem'):
 
-                entry = {'sequence': None, 'modification': {
-                    'delta': None, 'location': None}, 'pepmass':None, 'rank': None, 'decoy': None, 'params': dict()}
+                entry = {'sequence': None, 'modifications': {
+                    'delta': list(), 'location': list(), 'name': list()}, 'calcpepmass': None, 'pepmass': None, 'rank': None, 'decoy': None, 'params': dict()}
+
                 peptideRef = spectrumIdentificationItem.attrib['peptide_ref']
                 entry['rank'] = spectrumIdentificationItem.attrib['rank']
                 entry['pepmass'] = spectrumIdentificationItem.attrib['experimentalMassToCharge']
-
+                entry['calcpepmass'] = spectrumIdentificationItem.attrib['calculatedMassToCharge']
+ 
                 for peptide in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}Peptide'):
                     if peptide.attrib['id'] == peptideRef:
                         for peptideSequence in peptide.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}PeptideSequence'):
                             entry['sequence'] = peptideSequence.text
                         for mod in peptide.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}Modification'):
-                            entry['modification']['delta'] = mod.attrib['monoisotopicMassDelta']
-                            entry['modification']['location'] = mod.attrib['location']
+                            entry['modifications']['delta'].append(mod.attrib['monoisotopicMassDelta'])
+                            entry['modifications']['location'].append(mod.attrib['location'])
+                            for cvParam in mod.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
+                                if 'name' in cvParam.attrib:
+                                    entry['modifications']['name'].append(cvParam.attrib['name'])
 
                 for evidence in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}PeptideEvidence'):
                     if evidence.attrib['peptide_ref'] == peptideRef:
