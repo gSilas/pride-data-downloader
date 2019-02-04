@@ -27,18 +27,17 @@ if __name__ == '__main__':
 
     stat = dict()
 
-    for i in range(0, 96):
-        try:
-            tup = parse_stat_mzident('data_pride/' + str(i) + '.mzid')
-            if str(tup) not in stat:
-                stat[str(tup)] = {'softwares': tup[0],
-                                  'params': tup[1], 'count': 1}
-            else:
-                stat[str(tup)]['count'] += 1
-        except (xml.etree.ElementTree.ParseError, ValueError) as err:
-            print("File: " + str(i) + " is bad!")
-            print(err)
-            print(err.args)
+    try:
+        tup = parse_stat_mzident('data_pride/PXD007963/trcBiBP-2 (F001637_trcBiBP-2).mzid')
+        if str(tup) not in stat:
+            stat[str(tup)] = {'softwares': tup[0],
+                                'params': tup[1], 'count': 1}
+        else:
+            stat[str(tup)]['count'] += 1
+    except (xml.etree.ElementTree.ParseError, ValueError) as err:
+        print("File is bad!")
+        print(err)
+        print(err.args)
 
     with open('stat.csv', 'w', newline='') as csvfile:
         csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=[

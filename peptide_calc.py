@@ -58,14 +58,30 @@ def calculate_y_Series(sequence, charge):
 @jit(nopython=True)
 def dm_dalton_ppm(calculated_mass, experimental_mass):
     dm_dalton = calculated_mass - experimental_mass
-    dm_ppm = dm_dalton/calculated_mass*1000000.0
+    dm_ppm = (dm_dalton/calculated_mass)*1000000.0
     return dm_dalton, dm_ppm
-    
+
+@jit(nopython=True)
+def mean(array):
+    sum = 0.0
+    for error in array:
+        sum += error
+    return sum/len(array)
+
+@jit(nopython=True)
+def median(array):
+    if len(array) % 2 == 1:
+        return array[int(len(array) / 2)]
+    elif len(array) % 2 == 0:
+        return (array[int(len(array) / 2) - 1] + array[int(len(array) / 2)])/2
+
 # matches a y or b series to a sorted and zipped spectrum (m/z, intensities)
 @jit(nopython=True)
 def match_series_and_spectrum(series, zipped_data, threshold):
     matched_peaks = []
     matched_intensities = []
+    matching_errors = []
+
     longest_series = 0
 
     series_index = 0
@@ -73,100 +89,96 @@ def match_series_and_spectrum(series, zipped_data, threshold):
     matched = False
     upper = series[series_index] + threshold
     lower = series[series_index] - threshold
-    for i in range(0, len(zipped_data)):
-        if zipped_data[i][0] <= upper and zipped_data[i][0] >= lower:
-            matched_peaks.append(zipped_data[i][0])
-            matched_intensities.append(zipped_data[i][1])
-            matched = True
+    for index in range(0, len(zipped_data)):
 
-        if zipped_data[i][0] > upper and (series_index + 1) < len(series):
+        if zipped_data[index][0] > upper and (series_index + 1) < len(series):
             if(matched):
                 current_series += 1
                 if current_series > longest_series:
                     longest_series = current_series
                 matched = False
+                error = 0
+                matching_errors.append(error)
             else:
                 current_series = 0
-            
             series_index += 1
             upper = series[series_index] + threshold
             lower = series[series_index] - threshold
-            i -= 1
 
-        elif (series_index + 1) >= len(series):
-            return matched_peaks, matched_intensities, longest_series
+        if zipped_data[index][0] <= upper and zipped_data[index][0] >= lower:
+            matched_peaks.append(zipped_data[index][0])
+            matched_intensities.append(zipped_data[index][1])
+            matching_errors.append(abs(series[series_index] - zipped_data[index][0]))
+            matched = True
 
-    return matched_peaks, matched_intensities, longest_series
+    return matched_peaks, matched_intensities, longest_series, matching_errors
+
+@jit(nopython=True)
+def spectrum_statistics(zipped_data):
+    highest_intensity = 0.0
+    intensity_sum = 0.0
+
+    for i in range(0, len(zipped_data)):
+
+        intensity_sum += zipped_data[i][1]
+
+        if zipped_data[i][1] > highest_intensity:
+            highest_intensity = zipped_data[i][1]
+
+    return highest_intensity, intensity_sum
 
 class SeriesMatcher(object):
     def __init__(self, sequence, mods, zipped_spectrum, threshold):
         self.masssequence = transform_sequence_to_masssequence(sequence, mods)
         self.zipped_data = sorted(zipped_spectrum, key=lambda x: x[0])
         self.threshold = threshold
-        self.match_all()
     
-    def match_all(self):
-        self.bplus_peaks, self.bplus_int, self.bplus_series = match_series_and_spectrum(
+    def calculate_matches(self):
+        self.highest_intensity, self.intensity_sum = spectrum_statistics(self.zipped_data)
+        #print(self.zipped_data)
+        self.bplus_peaks, self.bplus_int, self.bplus_series, bplus_errors = match_series_and_spectrum(
             calculate_b_Series(self.masssequence, 1), self.zipped_data, self.threshold)
-        self.yplus_peaks, self.yplus_int, self.yplus_series = match_series_and_spectrum(
+
+        self.yplus_peaks, self.yplus_int, self.yplus_series, bplusplus_errors = match_series_and_spectrum(
             calculate_y_Series(self.masssequence, 1), self.zipped_data, self.threshold)
-        self.bplusplus_peaks, self.bplusplus_int, self.bplusplus_series = match_series_and_spectrum(
+
+        self.bplusplus_peaks, self.bplusplus_int, self.bplusplus_series, yplus_errors = match_series_and_spectrum(
             calculate_b_Series(self.masssequence, 2), self.zipped_data, self.threshold)
-        self.yplusplus_peaks, self.yplusplus_int, self.yplusplus_series = match_series_and_spectrum(
+
+        self.yplusplus_peaks, self.yplusplus_int, self.yplusplus_series, ypluplus_errors = match_series_and_spectrum(
             calculate_y_Series(self.masssequence, 2), self.zipped_data, self.threshold)
-        self.bplus_matches = len(self.bplus_peaks)
-        self.bplusplus_matches = len(self.bplusplus_peaks)
-        self.yplus_matches = len(self.yplus_peaks)
-        self.yplusplus_matches = len(self.yplusplus_peaks)
-        self.matches = len(self.bplus_peaks) + len(self.bplusplus_peaks) + len(self.yplus_peaks) + len(self.yplusplus_peaks)
-        self.sum_intensities = sum(self.bplus_int) + sum(self.bplusplus_int) + sum(self.yplus_int) + sum(self.yplusplus_int)
-        if self.sum_intensities > 0:
-            self.log_sum_intensities = math.log10(self.sum_intensities)
+
+        matching_errors = sorted(bplus_errors + bplusplus_errors + yplus_errors + ypluplus_errors)
+        #print(matching_errors)
+        if len(matching_errors) > 0:
+            self.mean_matching_error = mean(matching_errors)
+            self.median_matching_error = median(matching_errors)
+            self.iqr_matching_error = numpy.subtract(*numpy.percentile(matching_errors, [75, 25]))
+
+            self.bplus_matches = len(self.bplus_peaks)
+            self.bplusplus_matches = len(self.bplusplus_peaks)
+            self.yplus_matches = len(self.yplus_peaks)
+            self.yplusplus_matches = len(self.yplusplus_peaks)
+            self.matches = len(self.bplus_peaks) + len(self.bplusplus_peaks) + len(self.yplus_peaks) + len(self.yplusplus_peaks)
+            self.sum_matched_intensities = sum(self.bplus_int) + sum(self.bplusplus_int) + sum(self.yplus_int) + sum(self.yplusplus_int)
+            if self.sum_matched_intensities > 0:
+                self.log_sum_matched_intensities = math.log10(self.sum_matched_intensities)
+            else:
+                self.log_sum_matched_intensities = 0
+            if self.matches > 0:
+                self.bplus_ratio = self.bplus_matches/self.matches
+                self.bplusplus_ratio = self.bplusplus_matches/self.matches
+                self.yplus_ratio = self.yplus_matches/self.matches
+                self.yplusplus_ratio = self.yplusplus_matches/self.matches
+            else:
+                self.bplus_ratio = 0
+                self.bplusplus_ratio = 0
+                self.yplus_ratio = 0
+                self.yplusplus_ratio = 0
+            return True
         else:
-            self.log_sum_intensities = 0
-        if self.matches > 0:
-            self.bplus_ratio = self.bplus_matches/self.matches
-            self.bplusplus_ratio = self.bplusplus_matches/self.matches
-            self.yplus_ratio = self.yplus_matches/self.matches
-            self.yplusplus_ratio = self.yplusplus_matches/self.matches
-        else:
-            self.bplus_ratio = 0
-            self.bplusplus_ratio = 0
-            self.yplus_ratio = 0
-            self.yplusplus_ratio = 0
+            return False
 
 
 if __name__ == "__main__":
-    sequence = 'PEPTIDE'
-    charge = 2
-    mods = [0.0] * len(sequence)
-
-    mass_sequence = transform_sequence_to_masssequence(sequence, mods)
-    print(mass_sequence)
-    print(calculate_b_Series(mass_sequence, charge))
-    print(calculate_y_Series(mass_sequence, charge))
-
-    mgf, tokens = parse_mgf(
-        'data_pride/PXD007963/trcRBC-1 (F001639_trcRBC-1).mzid_trcRBC-1_(F001639_trcRBC-1).pride.mgf')
-    mzid = parse_mzident(
-        'data_pride/PXD007963/trcRBC-1 (F001639_trcRBC-1).mzid')
-
-    for key in mzid:
-        if key in mgf:
-            if int(mgf[key]['pepmass']) == int(float(mzid[key]['pepmass'])):
-                sequence = mzid[key]['sequence']
-                modifications = mzid[key]['modifications']
-                zipped_spectrum = zip(
-                    mgf[key]['mz_list'], mgf[key]['intensity_list'])
-
-                mods = [0.0] * len(sequence)
-                index = 0
-                for i in modifications['location']:
-                    mods[int(i)] = float(modifications['delta'][index])
-                    index += 1
-
-                print(sequence, match_all(sequence, mods, zipped_spectrum))
-            else:
-                print("No matching pepmass: {}".format(key))
-        else:
-            print("Not found in mgf: {}".format(key))
+    pass

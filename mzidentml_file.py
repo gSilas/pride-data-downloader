@@ -12,13 +12,23 @@ def parse_mzident(mzid_file):
         print(err.args)
         return entries
 
+    meta_parameters = dict()
     for analysisSoftwareList in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisSoftwareList'):
-        entries['software'] = list()
+        meta_parameters['software'] = list()
         for software in analysisSoftwareList.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisSoftware'):
             if 'name' in software:
-                entries['software'].append(software.attrib['name'])
+                meta_parameters['software'].append(software.attrib['name'])
             else:
-                entries['software'].append(software.attrib['id'])
+                meta_parameters['software'].append(software.attrib['id'])
+    
+    for analysisProtocolCollection in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisProtocolCollection'):
+        meta_parameters['tolerances'] = [0, 0]
+        for tolerances in analysisProtocolCollection.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}FragmentTolerance'):
+            for cvParam in tolerances.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
+                if "search tolerance plus value" in cvParam.attrib['name']:
+                    meta_parameters['tolerances'][0] = cvParam.attrib['value']
+                elif "search tolerance minus value" in cvParam.attrib['name']:
+                    meta_parameters['tolerances'][1] = cvParam.attrib['value']
 
     for spectrumIdentificationResult in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationResult'):
         # Sanity check for valid SpectrumID
@@ -26,7 +36,7 @@ def parse_mzident(mzid_file):
 
             for spectrumIdentificationItem in spectrumIdentificationResult.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationItem'):
 
-                entry = {'sequence': None, 'modifications': {
+                entry = {'meta_parameters': meta_parameters, 'sequence': None, 'modifications': {
                     'delta': list(), 'location': list(), 'name': list()}, 'calcpepmass': None, 'pepmass': None, 'rank': None, 'decoy': None, 'params': dict()}
 
                 peptideRef = spectrumIdentificationItem.attrib['peptide_ref']

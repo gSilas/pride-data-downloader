@@ -11,6 +11,7 @@ import requests
 
 
 import json_writer
+import csv_writer
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -211,4 +212,5 @@ if __name__ == "__main__":
     jsonPath = os.path.join(args.folder, 'psms.json')
     write_archive_file(archivePath, downloaded_files)
 
-    json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+    # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+    csv_writer.writeCSVPSMSfromArchive(archivePath, '')
