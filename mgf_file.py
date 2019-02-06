@@ -37,15 +37,20 @@ def parse_mgf(input_file):
         if 'BEGIN IONS' in line:
 
             attributes = dict()
+            try:
+                line = mgf_list[index + tokens['TITLE']]
+                attributes['title'] = re.sub(r'TITLE=', '', line)
 
-            line = mgf_list[index + tokens['TITLE']]
-            attributes['title'] = line[6:]
+                line = mgf_list[index + tokens['PEPMASS']]
+                attributes['pepmass'] = float(re.sub(r'PEPMASS=', '', line))
 
-            line = mgf_list[index + tokens['PEPMASS']]
-            attributes['pepmass'] = float(line.split('=')[1])
-
-            line = mgf_list[index + tokens['CHARGE']]
-            attributes['charge'] = int(line[7:-1])
+                line = mgf_list[index + tokens['CHARGE']]
+                attributes['charge'] = int(re.match(r'CHARGE=(\d)\+', line)[1])
+            
+            except TypeError:
+                print('Spectrum with index={} omitted!'.format(spectrum_mgf_index))
+                spectrum_mgf_index += 1
+                continue
 
             spectrum_index = index + tokens['LISTS']
             line = mgf_list[spectrum_index]
@@ -54,8 +59,8 @@ def parse_mgf(input_file):
 
             while not 'END IONS' in line:
                 line_split = line.split('\t')
-                mz_lst.append(float(line_split[0]))
-                intensity_lst.append(float(line_split[1]))
+                mz_lst.append(float(line_split[0].strip()))
+                intensity_lst.append(float(line_split[1].strip()))
                 spectrum_index += 1
                 line = mgf_list[spectrum_index]
 

@@ -52,7 +52,11 @@ def get_projectlist(args):
                 url += ins + '%2C%20'
             url = url[:-6]
         log.info("Requested URL: %s", url)
-        project_list = requests.get(url).json()['list']
+        responseList = requests.get(url)
+        if responseList:
+            project_list = responseList.json()['list']
+        else:
+            log.error("No PRIDE server response received!")
 
     if args.submission:
         return [project['accession'] for project in project_list if project['submissionType'] == args.submission]
@@ -206,11 +210,12 @@ if __name__ == "__main__":
     log.info("Found {} matching projects!".format(len(projects)))
     log.debug(projects)
 
-    downloaded_files = download_projectlist(projects, args.folder)
+    if projects:
+        downloaded_files = download_projectlist(projects, args.folder)
 
-    archivePath = os.path.join(args.folder, 'archive')
-    jsonPath = os.path.join(args.folder, 'psms.json')
-    write_archive_file(archivePath, downloaded_files)
+        archivePath = os.path.join(args.folder, 'archive')
+        jsonPath = os.path.join(args.folder, 'psms.json')
+        write_archive_file(archivePath, downloaded_files)
 
-    # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
-    csv_writer.writeCSVPSMSfromArchive(archivePath, '')
+        # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+        csv_writer.writeCSVPSMSfromArchive(archivePath)

@@ -1,4 +1,6 @@
 import csv
+import multiprocessing
+from multiprocessing import Pool
 from mgf_file import parse_mgf
 from mzidentml_file import parse_mzident
 from peptide_calc import dm_dalton_ppm
@@ -28,14 +30,14 @@ def generateRow(mzid, mgf):
     mods = [0.0] * len(sequence)
     index = 0
     for i in modifications['location']:
-        mods[int(i) - 1] = float(modifications['delta'][index])
+        mods[int(i) - 1] = modifications['delta'][index]
         index += 1
 
-    label = class_label(mzid)
+    decision, label = class_label(mzid)
     
-    match = SeriesMatcher(sequence, mods, zipped_spectrum, float(mzid['meta_parameters']['tolerances'][0]))
+    match = SeriesMatcher(sequence, mods, zipped_spectrum, mzid['meta_parameters']['tolerances'][0], mzid['meta_parameters']['tolerances'][1])
     if match.calculate_matches():
-        dm_dalton, dm_ppm = dm_dalton_ppm(float(mzid['calcpepmass']), float(mgf['pepmass']))
+        dm_dalton, dm_ppm = dm_dalton_ppm(mzid['calcpepmass'], mgf['pepmass'])
     #TODO remove missing values with 0
         row = {"Id": "BLA", 
         "Domain_Id": "BLABLA",
@@ -66,13 +68,15 @@ def generateRow(mzid, mgf):
         "median_matched_frag_ion_errors": match.median_matching_error, #TODO
         "mean_matched_frag_ion_errors": match.mean_matching_error, #TODO
         "iqr_matched_frag_ion_errors": match.iqr_matching_error, #TODO interquartiel distance
-        "Class_Label": label #TODO
+        "Class_Label": label, #TODO
+        "ClassLabel_Decision": decision,
+        "Params": mzid['meta_parameters']
         }
         return row
     else:
         return None
 
-def writeCSVPSMSfromArchive(archivePath, csvPath):
+def writeCSVPSMSfromArchive(archivePath):
     archived_files = []
     with open(archivePath, 'r') as fp:
         csvreader = csv.reader(fp, delimiter=';')
@@ -82,29 +86,30 @@ def writeCSVPSMSfromArchive(archivePath, csvPath):
     for files in archived_files:
         print(files)
 
+    p = Pool(multiprocessing.cpu_count())
+    p.map(processFunction, archived_files)
+        
+def processFunction(files):
     rows = []
-    for files in archived_files:
-        mgffp = files[1]
-        mzidfp = files[2]
-        mzid = parse_mzident(mzidfp)
-        mgf, _ = parse_mgf(mgffp)
-        for key in mzid:
-            if key in mgf:
-                if int(mgf[key]['pepmass']) == int(float(mzid[key]['pepmass'])):
-                    mgf_dict = mgf[key]
-                    mzid_dict = mzid[key]
-                    row = generateRow(mzid_dict, mgf_dict)
-                    if row:
-                        rows.append(row)
-                    else:
-                        print("No matching peaks: {}".format(key))
+    mgffp = files[1]
+    mzidfp = files[2]
+    mzid = parse_mzident(mzidfp)
+    mgf, _ = parse_mgf(mgffp)
+    for key in mzid:
+        if key in mgf:
+            if int(mgf[key]['pepmass']) == int(float(mzid[key]['pepmass'])):
+                mgf_dict = mgf[key]
+                mzid_dict = mzid[key]
+                row = generateRow(mzid_dict, mgf_dict)
+                if row:
+                    rows.append(row)
                 else:
-                    print("No matching pepmass: {}".format(key))
+                    print("No matching peaks: {}".format(key))
             else:
-                print("Not found in mgf: {}".format(key))
-        writeCSVRows(rows, mgffp+".csv")
-        rows = []
-
+                print("No matching pepmass: {}".format(key))
+        else:
+            print("Not found in mgf: {}".format(key))
+    writeCSVRows(rows, mgffp+".csv")
 
 if __name__ == "__main__":
-    writeCSVPSMSfromArchive("data_pride/archive", "psms.csv")
+    writeCSVPSMSfromArchive("data_pride/archive")

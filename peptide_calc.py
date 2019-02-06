@@ -77,7 +77,7 @@ def median(array):
 
 # matches a y or b series to a sorted and zipped spectrum (m/z, intensities)
 @jit(nopython=True)
-def match_series_and_spectrum(series, zipped_data, threshold):
+def match_series_and_spectrum(series, zipped_data, upperthreshold, lowerthreshold):
     matched_peaks = []
     matched_intensities = []
     matching_errors = []
@@ -87,11 +87,12 @@ def match_series_and_spectrum(series, zipped_data, threshold):
     series_index = 0
     current_series = 0
     matched = False
-    upper = series[series_index] + threshold
-    lower = series[series_index] - threshold
+    upper = series[series_index] + upperthreshold
+    lower = series[series_index] - lowerthreshold
     for index in range(0, len(zipped_data)):
 
-        if zipped_data[index][0] > upper and (series_index + 1) < len(series):
+        if zipped_data[index][0] > upper and (series_index
+         + 1) < len(series):
             if(matched):
                 current_series += 1
                 if current_series > longest_series:
@@ -102,8 +103,8 @@ def match_series_and_spectrum(series, zipped_data, threshold):
             else:
                 current_series = 0
             series_index += 1
-            upper = series[series_index] + threshold
-            lower = series[series_index] - threshold
+            upper = series[series_index] + upperthreshold
+            lower = series[series_index] - lowerthreshold
 
         if zipped_data[index][0] <= upper and zipped_data[index][0] >= lower:
             matched_peaks.append(zipped_data[index][0])
@@ -128,25 +129,27 @@ def spectrum_statistics(zipped_data):
     return highest_intensity, intensity_sum
 
 class SeriesMatcher(object):
-    def __init__(self, sequence, mods, zipped_spectrum, threshold):
+    def __init__(self, sequence, mods, zipped_spectrum, upperthreshold, lowerthreshold):
         self.masssequence = transform_sequence_to_masssequence(sequence, mods)
         self.zipped_data = sorted(zipped_spectrum, key=lambda x: x[0])
-        self.threshold = threshold
+        self.upperthreshold = upperthreshold
+        self.lowerthreshold = lowerthreshold
     
     def calculate_matches(self):
         self.highest_intensity, self.intensity_sum = spectrum_statistics(self.zipped_data)
         #print(self.zipped_data)
         self.bplus_peaks, self.bplus_int, self.bplus_series, bplus_errors = match_series_and_spectrum(
-            calculate_b_Series(self.masssequence, 1), self.zipped_data, self.threshold)
+            calculate_b_Series(self.masssequence, 1), self.zipped_data, self.upperthreshold, self.lowerthreshold)
 
         self.yplus_peaks, self.yplus_int, self.yplus_series, bplusplus_errors = match_series_and_spectrum(
-            calculate_y_Series(self.masssequence, 1), self.zipped_data, self.threshold)
+            calculate_y_Series(self.masssequence, 1), self.zipped_data, self.upperthreshold, self.lowerthreshold)
 
         self.bplusplus_peaks, self.bplusplus_int, self.bplusplus_series, yplus_errors = match_series_and_spectrum(
-            calculate_b_Series(self.masssequence, 2), self.zipped_data, self.threshold)
+            calculate_b_Series(self.masssequence, 2), self.zipped_data, self.upperthreshold, self.lowerthreshold)
 
         self.yplusplus_peaks, self.yplusplus_int, self.yplusplus_series, ypluplus_errors = match_series_and_spectrum(
-            calculate_y_Series(self.masssequence, 2), self.zipped_data, self.threshold)
+            calculate_y_Series(self.masssequence, 2), self.zipped_data,
+             self.upperthreshold, self.lowerthreshold)
 
         matching_errors = sorted(bplus_errors + bplusplus_errors + yplus_errors + ypluplus_errors)
         #print(matching_errors)

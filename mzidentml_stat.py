@@ -22,18 +22,23 @@ def parse_stat_mzident(mzid_file):
         break
     return software, cvparams
 
-
 if __name__ == '__main__':
 
     stat = dict()
 
     try:
-        tup = parse_stat_mzident('data_pride/PXD007963/trcBiBP-2 (F001637_trcBiBP-2).mzid')
-        if str(tup) not in stat:
-            stat[str(tup)] = {'softwares': tup[0],
-                                'params': tup[1], 'count': 1}
-        else:
-            stat[str(tup)]['count'] += 1
+        archived_files = []
+        with open('data_pride/archive', 'r') as fp:
+            csvreader = csv.reader(fp, delimiter=';')
+            for row in csvreader:
+                archived_files.append(row)
+        for files in archived_files:
+            tup = parse_stat_mzident(files[2])
+            if str(tup) not in stat:
+                stat[str(tup)] = {'softwares': tup[0],
+                                    'params': tup[1], 'count': 1}
+            else:
+                stat[str(tup)]['count'] += 1
     except (xml.etree.ElementTree.ParseError, ValueError) as err:
         print("File is bad!")
         print(err)

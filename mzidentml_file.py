@@ -26,9 +26,9 @@ def parse_mzident(mzid_file):
         for tolerances in analysisProtocolCollection.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}FragmentTolerance'):
             for cvParam in tolerances.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
                 if "search tolerance plus value" in cvParam.attrib['name']:
-                    meta_parameters['tolerances'][0] = cvParam.attrib['value']
+                    meta_parameters['tolerances'][0] = float(cvParam.attrib['value'])
                 elif "search tolerance minus value" in cvParam.attrib['name']:
-                    meta_parameters['tolerances'][1] = cvParam.attrib['value']
+                    meta_parameters['tolerances'][1] = float(cvParam.attrib['value'])
 
     for spectrumIdentificationResult in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationResult'):
         # Sanity check for valid SpectrumID
@@ -40,17 +40,17 @@ def parse_mzident(mzid_file):
                     'delta': list(), 'location': list(), 'name': list()}, 'calcpepmass': None, 'pepmass': None, 'rank': None, 'decoy': None, 'params': dict()}
 
                 peptideRef = spectrumIdentificationItem.attrib['peptide_ref']
-                entry['rank'] = spectrumIdentificationItem.attrib['rank']
-                entry['pepmass'] = spectrumIdentificationItem.attrib['experimentalMassToCharge']
-                entry['calcpepmass'] = spectrumIdentificationItem.attrib['calculatedMassToCharge']
+                entry['rank'] = float(spectrumIdentificationItem.attrib['rank'])
+                entry['pepmass'] = float(spectrumIdentificationItem.attrib['experimentalMassToCharge'])
+                entry['calcpepmass'] = float(spectrumIdentificationItem.attrib['calculatedMassToCharge'])
  
                 for peptide in mzid_xmltree.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}Peptide'):
                     if peptide.attrib['id'] == peptideRef:
                         for peptideSequence in peptide.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}PeptideSequence'):
                             entry['sequence'] = peptideSequence.text
                         for mod in peptide.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}Modification'):
-                            entry['modifications']['delta'].append(mod.attrib['monoisotopicMassDelta'])
-                            entry['modifications']['location'].append(mod.attrib['location'])
+                            entry['modifications']['delta'].append(float(mod.attrib['monoisotopicMassDelta']))
+                            entry['modifications']['location'].append(float(mod.attrib['location']))
                             for cvParam in mod.iter('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
                                 if 'name' in cvParam.attrib:
                                     entry['modifications']['name'].append(cvParam.attrib['name'])
