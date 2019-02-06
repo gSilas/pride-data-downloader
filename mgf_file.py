@@ -37,21 +37,16 @@ def parse_mgf(input_file):
         if 'BEGIN IONS' in line:
 
             attributes = dict()
-            try:
-                line = mgf_list[index + tokens['TITLE']]
-                attributes['title'] = re.sub(r'TITLE=', '', line)
+        
+            line = mgf_list[index + tokens['TITLE']]
+            attributes['title'] = re.sub(r'TITLE=', '', line)
 
-                line = mgf_list[index + tokens['PEPMASS']]
-                attributes['pepmass'] = float(re.sub(r'PEPMASS=', '', line))
+            line = mgf_list[index + tokens['PEPMASS']]
+            attributes['pepmass'] = float(re.sub(r'PEPMASS=', '', line))
 
-                line = mgf_list[index + tokens['CHARGE']]
-                attributes['charge'] = int(re.match(r'CHARGE=(\d)\+', line)[1])
+            line = mgf_list[index + tokens['CHARGE']]
+            attributes['charge'] = int(re.match(r'CHARGE=(\d)\+', line)[1] if re.match(r'CHARGE=(\d)\+', line) else 0)
             
-            except TypeError:
-                print('Spectrum with index={} omitted!'.format(spectrum_mgf_index))
-                spectrum_mgf_index += 1
-                continue
-
             spectrum_index = index + tokens['LISTS']
             line = mgf_list[spectrum_index]
             mz_lst = []

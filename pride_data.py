@@ -35,8 +35,7 @@ def get_projectlist(args):
 
     if args.accessions:
         for acc in args.accessions:
-            url = "https://www.ebi.ac.uk:443/pride/ws/archive/project/" + acc
-            project_list.append(requests.get(url).json())
+            url = "https://www.ebi.ac.uk:443/pride/ws/archive/project/" + ''.join(acc)
 
     else:
         url = 'https://www.ebi.ac.uk:443/pride/ws/archive/project/list/?show=' + \
@@ -51,12 +50,16 @@ def get_projectlist(args):
             for ins in args.instruments:
                 url += ins + '%2C%20'
             url = url[:-6]
-        log.info("Requested URL: %s", url)
-        responseList = requests.get(url)
-        if responseList:
+    log.info("Requested URL: %s", url)
+
+    responseList = requests.get(url)
+    if responseList:
+        if 'list' in responseList:
             project_list = responseList.json()['list']
         else:
-            log.error("No PRIDE server response received!")
+            project_list.append(responseList.json())
+    else:
+        log.error("No PRIDE server response received!")
 
     if args.submission:
         return [project['accession'] for project in project_list if project['submissionType'] == args.submission]
@@ -215,7 +218,8 @@ if __name__ == "__main__":
 
         archivePath = os.path.join(args.folder, 'archive')
         jsonPath = os.path.join(args.folder, 'psms.json')
-        write_archive_file(archivePath, downloaded_files)
+        if downloaded_files:
+            write_archive_file(archivePath, downloaded_files)
 
         # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
         csv_writer.writeCSVPSMSfromArchive(archivePath)

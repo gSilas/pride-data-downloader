@@ -13,7 +13,7 @@ HEADER = ["Id", "Domain_Id", "Charge", "sumI", "norm_high_peak_intensity", "Num_
 "b++_ratio", "y+_ratio", "y++_ratio", "b+_count", "b++_count", "y+_count", "y++_count", "b+_long_count", 
 # "b+_intensities",  "b++_intensities",  "y+_intensities",  "y++_intensities",
 "b++_long_count", "y+_long_count", "y++_long_count", "median_matched_frag_ion_errors", "mean_matched_frag_ion_errors", 
-"iqr_matched_frag_ion_errors", "Class_Label"]
+"iqr_matched_frag_ion_errors", "Class_Label", "ClassLabel_Decision", "Params"]
 
 def writeCSVRows(rows, csvPath):
     with open(csvPath, 'a+', newline='') as csvfile:
