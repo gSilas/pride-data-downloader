@@ -38,33 +38,42 @@ def get_projectlist(args):
             url = "https://www.ebi.ac.uk:443/pride/ws/archive/project/" + ''.join(acc)
 
     else:
-        url = 'https://www.ebi.ac.uk:443/pride/ws/archive/project/list/?show=' + \
-            str(args.number) + '&page=0&order=desc'
-        if args.species:
-            url += '&speciesFilter='
-            for spec in args.species:
-                url += spec + '%2C%20'
-            url = url[:-6]
-        if args.instruments:
-            url += '&instrumentFilter='
-            for ins in args.instruments:
-                url += ins + '%2C%20'
-            url = url[:-6]
-    log.info("Requested URL: %s", url)
+        urls = [] 
+        for page in range(0, args.pages):
+            url = 'https://www.ebi.ac.uk:443/pride/ws/archive/project/list/?show=' + \
+                str(args.number) + '&page=' + str(page) + '&order=desc'
+            if args.species:
+                url += '&speciesFilter='
+                for spec in args.species:
+                    url += spec + '%2C%20'
+                url = url[:-6]
+            if args.instruments:
+                url += '&instrumentFilter='
+                for ins in args.instruments:
+                    url += ins + '%2C%20'
+                url = url[:-6]
+            urls.append(url)
 
-    responseList = requests.get(url)
-    if responseList:
-        if 'list' in responseList:
+    projectList = []
+
+    for url in urls:
+        log.info("Requested URL: %s", url)
+
+        responseList = requests.get(url)
+        
+        if responseList:
             project_list = responseList.json()['list']
         else:
-            project_list.append(responseList.json())
-    else:
-        log.error("No PRIDE server response received!")
+            log.error("No PRIDE server response received!")
+            continue
 
-    if args.submission:
-        return [project['accession'] for project in project_list if project['submissionType'] == args.submission]
-    else:
-        return [project['accession'] for project in project_list]
+        if args.submission:
+            projectList += [project['accession'] for project in project_list if project['submissionType'] == args.submission]
+
+        else:
+            projectList += [project['accession'] for project in project_list]
+
+    return projectList
 
 
 def get_filelist(project):
@@ -114,7 +123,13 @@ def download_file(url, dest_folder):
         os.mkdir(dest_folder)
 
     # download file
-    f = urllib.request.urlopen(url)
+    
+    try:
+        f = urllib.request.urlopen(url)
+    except urllib.error.URLError as err:
+        log.error('Error on request for file: {} error: {}'.format(url, err))
+        return None
+
     data = f.read()
 
     # write file
@@ -148,7 +163,7 @@ def extract_remove_file(f):
     return extracted_file
 
 
-def download_projectlist(projects, folder):
+def download_projectlist(projects, folder, single_file=False):
     if projects:
         if not os.path.exists(folder):
             os.mkdir(folder)
@@ -156,7 +171,6 @@ def download_projectlist(projects, folder):
     downloaded_files = []
 
     for project in projects:
-
         if project in os.listdir(folder):
             continue
 
@@ -168,16 +182,21 @@ def download_projectlist(projects, folder):
             for key in files:
 
                 for mgf_file, mzid_file in files[key]:
-                    extracted_mgf = extract_remove_file(download_file(
-                        mgf_file, os.path.join(folder, key)))
-                    log.info("Downloaded: {} to {}".format(
-                        mgf_file, extracted_mgf))
-                    extracted_mzid = extract_remove_file(download_file(
-                        mzid_file, os.path.join(folder, key)))
-                    log.info("Downloaded: {} to {}".format(
-                        mzid_file, extracted_mzid))
-                    downloaded_files.append(
-                        (project, extracted_mgf, extracted_mzid))
+                    mgf = download_file(mgf_file, os.path.join(folder, key))
+                    if mgf:
+                        extracted_mgf = extract_remove_file(mgf)
+                        log.info("Downloaded: {} to {}".format(
+                            mgf_file, extracted_mgf))
+                    mzid = download_file(mzid_file, os.path.join(folder, key))
+                    if mzid:
+                        extracted_mzid = extract_remove_file(mzid)
+                        log.info("Downloaded: {} to {}".format(
+                            mzid_file, extracted_mzid))
+                    if extracted_mgf and extracted_mzid:
+                        downloaded_files.append(
+                            (project, extracted_mgf, extracted_mzid))
+                    if single_file:
+                        break
 
     return downloaded_files
 
@@ -199,6 +218,9 @@ if __name__ == "__main__":
                         type=list, help="Specify certain projects by accessions to download.")
     parser.add_argument('-N', '--number', metavar='1..10000', type=int, choices=range(
         1, 10001), default=1, help="Maximal number of projects with fitting metadata to include.")
+    parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
+        1, 51), default=1, help="Maximal number of project pages to search.")
+    parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
     parser.add_argument('-I', '--instruments', nargs='*', default=None,
                         type=str, help="MS/MS instruments used in projects. String used by PRIDE")
     parser.add_argument('-S', '--species', nargs='*', default=None,
@@ -213,13 +235,24 @@ if __name__ == "__main__":
     log.info("Found {} matching projects!".format(len(projects)))
     log.debug(projects)
 
-    if projects:
-        downloaded_files = download_projectlist(projects, args.folder)
+    archivePath = os.path.join(args.folder, 'archive')
 
-        archivePath = os.path.join(args.folder, 'archive')
+    if os.path.exists(archivePath):
+        with open(archivePath) as fp:
+            for line in fp:
+                for project in projects:
+                    if project in line:
+                        projects.remove(projects)
+
+    if args.single_file:
+        log.info('Only downloading single file tuples for each available project!')
+
+    if projects:
+        downloaded_files = download_projectlist(projects, args.folder, args.single_file)
+
         jsonPath = os.path.join(args.folder, 'psms.json')
         if downloaded_files:
             write_archive_file(archivePath, downloaded_files)
 
         # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
-        csv_writer.writeCSVPSMSfromArchive(archivePath)
+        # csv_writer.writeCSVPSMSfromArchive(archivePath)

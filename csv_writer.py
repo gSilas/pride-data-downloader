@@ -30,6 +30,7 @@ def generateRow(mzid, mgf):
     mods = [0.0] * len(sequence)
     index = 0
     for i in modifications['location']:
+        print(i, len(mods))
         mods[int(i) - 1] = modifications['delta'][index]
         index += 1
 
@@ -93,7 +94,9 @@ def processFunction(files):
     rows = []
     mgffp = files[1]
     mzidfp = files[2]
+    print('Processing {}'.format(mzidfp))
     mzid = parse_mzident(mzidfp)
+    print('Processing {}'.format(mgffp))
     mgf, _ = parse_mgf(mgffp)
     for key in mzid:
         if key in mgf:
@@ -109,6 +112,7 @@ def processFunction(files):
                 print("No matching pepmass: {}".format(key))
         else:
             print("Not found in mgf: {}".format(key))
+    print('Writing CSV!')
     writeCSVRows(rows, mgffp+".csv")
 
 if __name__ == "__main__":
