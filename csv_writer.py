@@ -30,7 +30,7 @@ def generateRow(mzid, mgf):
     mods = [0.0] * len(sequence)
     index = 0
     for i in modifications['location']:
-        print(i, len(mods))
+        #print(i, len(mods))
         mods[int(i) - 1] = modifications['delta'][index]
         index += 1
 
@@ -40,8 +40,8 @@ def generateRow(mzid, mgf):
     if match.calculate_matches():
         dm_dalton, dm_ppm = dm_dalton_ppm(mzid['calcpepmass'], mgf['pepmass'])
     #TODO remove missing values with 0
-        row = {"Id": "BLA", 
-        "Domain_Id": "BLABLA",
+        row = {"Id": "UNDEFINED", 
+        "Domain_Id": "UNDEFINED",
         "Charge": mgf['charge'],
         "sumI": sum(mgf['intensity_list']), 
         "norm_high_peak_intensity": match.highest_intensity/match.intensity_sum, # int highest peak / sum of intensities

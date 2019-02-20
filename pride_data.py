@@ -8,6 +8,7 @@ import shutil
 import logging
 import argparse
 import requests
+import resource
 
 
 import json_writer
@@ -28,6 +29,18 @@ handler.setFormatter(logging.Formatter(
 handler.setLevel(logging.INFO)
 log.addHandler(handler)
 
+def memory_limit(ratio):
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * ratio), hard))
+
+def get_memory():
+    with open('/proc/meminfo', 'r') as mem:
+        free_memory = 0
+        for i in mem:
+            sline = i.split()
+            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
+                free_memory += int(sline[1])
+    return free_memory
 
 def get_projectlist(args):
 
@@ -95,10 +108,10 @@ def get_filelist(project):
 
     for pfile in project_files:
         if 'downloadLink' in pfile:
-            if pfile['downloadLink'].endswith('.mgf.gz') and pfile['fileType'] == "PEAK":
-                mgf_files[pfile["assayAccession"]] = pfile['downloadLink']
+            if pfile['downloadLink'].endswith('.mgf.gz') and pfile['fileType'] == "PEAK" and pfile['fileSource'] == "GENERATED":
+                mgf_files[pfile["projectAccession"] + pfile["assayAccession"]] = pfile['downloadLink']
             elif pfile['downloadLink'].endswith('.mzid.gz') and pfile['fileType'] == "RESULT":
-                mzid_files[pfile['assayAccession']] = pfile['downloadLink']
+                mzid_files[pfile["projectAccession"] + pfile["assayAccession"]] = pfile['downloadLink']
 
     key_intersection = mgf_files.keys() & mzid_files.keys()
 
@@ -216,6 +229,8 @@ if __name__ == "__main__":
         description="Download PRIDE projects and create Nocoy trainable csv!")
     parser.add_argument('-A', '--accessions', nargs='*', default=None,
                         type=list, help="Specify certain projects by accessions to download.")
+    parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available project!")
+    parser.add_argument('-M', '--memory', type=float, default=0.8, help="Limits the RAM for the program to the given ratio of the available RAM!")
     parser.add_argument('-N', '--number', metavar='1..10000', type=int, choices=range(
         1, 10001), default=1, help="Maximal number of projects with fitting metadata to include.")
     parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
@@ -223,6 +238,7 @@ if __name__ == "__main__":
     parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
     parser.add_argument('-I', '--instruments', nargs='*', default=None,
                         type=str, help="MS/MS instruments used in projects. String used by PRIDE")
+    parser.add_argument('-J', '--json', action='store_true', help="Generates a json file from each available project!")
     parser.add_argument('-S', '--species', nargs='*', default=None,
                         type=str, help="Species evaluated in projects. NCBI Taxonomy ID")
     parser.add_argument('-F', '--folder', nargs='*', default="data_pride",
@@ -230,7 +246,8 @@ if __name__ == "__main__":
     parser.add_argument('-Sub', '--submission', default="COMPLETE",
                         type=str, help="SubmissionType for projects.")
     args = parser.parse_args()
-
+    
+    memory_limit(args.memory)
     projects = get_projectlist(args)
     log.info("Found {} matching projects!".format(len(projects)))
     log.debug(projects)
@@ -254,5 +271,8 @@ if __name__ == "__main__":
         if downloaded_files:
             write_archive_file(archivePath, downloaded_files)
 
-        # json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
-        # csv_writer.writeCSVPSMSfromArchive(archivePath)
+    if args.csv:
+        csv_writer.writeCSVPSMSfromArchive(archivePath)
+
+    if args.json:
+        json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)

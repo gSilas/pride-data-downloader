@@ -1,15 +1,18 @@
 import re
+import gc
+import time
 import xml.etree.cElementTree as ET
-
 
 def parse_mzident(mzid_file):
     entries = dict()
     try:
         mzid_xmltree = ET.parse(mzid_file)
-    except (ET.ParseError, ValueError) as err:
+    except (ET.ParseError, ValueError, MemoryError) as err:
         print("File: " + str(mzid_file) + " is bad!")
         print(err)
         print(err.args)
+        gc.collect()
+        time.sleep(5)
         return entries
 
     meta_parameters = dict()
