@@ -68,7 +68,7 @@ def get_projectlist(args):
             urls.append(url)
 
     projectList = []
-
+    bla = []
     for url in urls:
         log.info("Requested URL: %s", url)
 
@@ -80,12 +80,26 @@ def get_projectlist(args):
             log.error("No PRIDE server response received!")
             continue
 
+        for project in project_list:
+            for mod in project['ptmNames']:
+                if mod not in bla:
+                    bla.append(mod)
+
+
         if args.submission:
             projectList += [project['accession'] for project in project_list if project['submissionType'] == args.submission]
 
         else:
             projectList += [project['accession'] for project in project_list]
 
+        
+    print(bla)
+    with open('modifications.csv', 'a+') as fp:
+            csvwriter = csv.writer(fp, delimiter=';')
+            for mod in bla:
+                print(mod)
+                csvwriter.writerow([mod, ''])
+    sys.exit()
     return projectList
 
 

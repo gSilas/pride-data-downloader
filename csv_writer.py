@@ -38,7 +38,7 @@ def generateRow(mzid, mgf, parameters):
     match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
     if match.calculate_matches():
         dm_dalton, dm_ppm = dm_dalton_ppm(mzid.calculatedMassToCharge, mgf['pepmass'])
-    #TODO remove missing values with 0
+
         row = {"Id": "UNDEFINED", 
         "Domain_Id": "UNDEFINED",
         "Charge": mgf['charge'],
@@ -65,10 +65,10 @@ def generateRow(mzid, mgf, parameters):
         "b++_long_count": match.bplusplus_series, 
         "y+_long_count": match.yplus_series,
         "y++_long_count": match.yplusplus_series,
-        "median_matched_frag_ion_errors": match.median_matching_error, #TODO
-        "mean_matched_frag_ion_errors": match.mean_matching_error, #TODO
-        "iqr_matched_frag_ion_errors": match.iqr_matching_error, #TODO interquartiel distance
-        "Class_Label": label, #TODO
+        "median_matched_frag_ion_errors": match.median_matching_error,
+        "mean_matched_frag_ion_errors": match.mean_matching_error,
+        "iqr_matched_frag_ion_errors": match.iqr_matching_error, 
+        "Class_Label": label,
         "ClassLabel_Decision": decision#,
         #"Params": mzid['meta_parameters']
         }
@@ -98,24 +98,26 @@ def processFunction(files):
     mzidfp = files[2]
     print('Processing MZID {}'.format(mzidfp))
     mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
-    print('Processing MGF {}'.format(mgffp))
-    mgf, _ = parse_mgf(mgffp)
-    for key in mzid:
-        if key in mgf:
-            if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
-                mgf_dict = mgf[key]
-                mzid_dict = mzid[key]
-                row = generateRow(mzid_dict, mgf_dict, parameters)
-                if row:
-                    rows.append(row)
+    if 'search tolerance minus value' and 'search tolerance plus value' in parameters:
+        print('Processing MGF {}'.format(mgffp))
+        mgf, _ = parse_mgf(mgffp)
+        for key in mzid:
+            if key in mgf:
+                if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
+                    mgf_dict = mgf[key]
+                    mzid_dict = mzid[key]
+                    row = generateRow(mzid_dict, mgf_dict, parameters)
+                    if row:
+                        rows.append(row)
+                    else:
+                        print("No matching peaks: {}".format(key))
                 else:
-                    print("No matching peaks: {}".format(key))
+                    print("No matching pepmass: {}".format(key))
             else:
-                print("No matching pepmass: {}".format(key))
-        else:
-            print("Not found in mgf: {}".format(key))
-    print('Writing CSV!')
-    writeCSVRows(rows, mgffp+".csv")
-
+                print("Not found in mgf: {}".format(key))
+        print('Writing CSV!')
+        writeCSVRows(rows, mgffp+".csv")
+    else:
+        print('No tolerances found: {}'.format(mzidfp))
 if __name__ == "__main__":
     writeCSVPSMSfromArchive("data_pride/archive")

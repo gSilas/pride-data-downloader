@@ -8,9 +8,10 @@ class _Result(object):
     experimentalMassToCharge = ''
     calculatedMassToCharge = ''
     isDecoy = ''
+    parameters = []
 
 
-def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod):
+def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod, result_params):
     
     _internal_result = None
 
@@ -24,6 +25,8 @@ def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod):
         _internal_result.isDecoy = True if result_pep_evid == 'true' else False
         _internal_result.rank = int(result_spec_ident[1])
         _internal_result.sequence = result_seq
+        for elem in result_params:
+            _internal_result.parameters.append(elem)
         if result_mod:
             _internal_result.modifications = []
             for mod in result_mod:
@@ -41,6 +44,7 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
         self._result_pep_evid = dict()
         self._result_pep_seq = dict()
         self._result_mod = dict()
+        self._result_ident_params = dict()
 
         self._peptide_ref = 0
         self._sequence = 1
@@ -63,7 +67,8 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
                 self._result_spec_ident[peptide] if peptide in self._result_spec_ident else None, 
                 self._result_pep_evid[peptide] if peptide in self._result_pep_evid else None, 
                 self._result_pep_seq[peptide] if peptide in self._result_pep_seq else None, 
-                self._result_mod[peptide] if peptide in self._result_mod else None)
+                self._result_mod[peptide] if peptide in self._result_mod else None,
+                self._result_ident_params[peptide] if peptide in self._result_ident_params else None)
 
             if result:
                 results[self._result_spec_ident[peptide][0]] = result
@@ -79,7 +84,10 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
         self._open_tags.append(name)
 
         if name == 'AnalysisSoftware':
-            self._result_params['AnalysisSoftware'] = attrs.getValue('name')
+            if 'name' in attrs.getNames():
+                self._result_params['AnalysisSoftware'] = attrs.getValue('name')
+            else:
+                self._result_params['AnalysisSoftware'] = attrs.getValue('id')
 
         elif name == 'cvParam':
             if 'Modification' in self._open_tags:
@@ -97,8 +105,11 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
 
             elif "SpectrumIdentificationItem" in self._open_tags:
                 if 'value' in attrs.getNames():
-                    self._result_spec_ident[self._current_spec_ident] + \
-                        (attrs.getValue('name'), attrs.getValue('value'))
+                    if self._current_spec_ident in self._result_ident_params:
+                        self._result_ident_params[self._current_spec_ident].append((attrs.getValue('name'), attrs.getValue('value')))
+                    else:
+                        self._result_ident_params[self._current_spec_ident] = list()
+                        self._result_ident_params[self._current_spec_ident].append((attrs.getValue('name'), attrs.getValue('value')))
 
         elif name == 'Modification':
             if self._current_pep in self._result_mod:
@@ -109,13 +120,20 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
                 self._result_mod[self._current_pep].append(
                     (attrs.getValue('monoisotopicMassDelta'), attrs.getValue('location')))
 
+        elif name == 'userParam':
+            if 'fragment_ion_tolerance' in attrs.getValue('name'):
+                self._result_params['search tolerance plus value'] = float(
+                        attrs.getValue('value'))
+                self._result_params['search tolerance minus value'] = float(
+                        attrs.getValue('value'))
+
         elif name == 'SpectrumIdentificationItem':
             self._current_spec_ident = attrs.getValue('peptide_ref')
             self._result_spec_ident[attrs.getValue('peptide_ref')] = (self._current_spec_id, attrs.getValue(
                 'rank'), attrs.getValue('experimentalMassToCharge'),  attrs.getValue('calculatedMassToCharge'))
 
         elif name == 'SpectrumIdentificationResult':
-            self._current_spec_id = attrs.getValue('spectrumID')
+            self._current_spec_id = attrs.getValue('spectrumID').split()[0]
 
         elif name == 'Peptide':
             self._current_pep = attrs.getValue('id')
@@ -137,8 +155,8 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
 
 
 if __name__ == "__main__":
-    with open("/home/dan/Documents/Work/PRIDEdata/xml_handlers/kelstrup_hela-res15000_all-fractions.out.cpsx.xml") as f:
-        results = MZIdentMLHandler().parse(f)[0]
-
+    with open("/home/dan/Documents/Work/PRIDEdata/data_pride/PXD012407/ML_170312_Qex_B03.mzid") as f:
+        results, parameters = MZIdentMLHandler().parse(f)
+        print(results)
         for pep in results:
             print(results[pep].__dict__)

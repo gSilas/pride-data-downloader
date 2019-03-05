@@ -1,17 +1,18 @@
 def class_label(mzid):
-        
-        # print(mzid['params'])
-        # if 'Mascot:identity threshold' in mzid['params'] and 'Mascot:score' in mzid['params']:
-        #     if float(mzid['params']['Mascot:score']) > float(mzid['params']['Mascot:identity threshold']):
-        #         return 'mascot', "TRUE"
-        #     else:
-        #         return 'mascot', "FALSE"
 
-        # if 'Scaffold:Peptide Probability' in mzid['params']:
-        #     if float(mzid['params']['Scaffold:Peptide Probability']) >= 0.99:
-        #         return 'scaffold', "TRUE"
-        #     else:
-        #         return 'scaffold', "FALSE"
+   # print(mzid.parameters)
+    for param in mzid.parameters:
+        if 'Mascot:identity threshold' in param[0] and 'Mascot:score' in param[0]:
+            if float(param[1]) > float(param[1]):
+                return 'mascot', "TRUE"
+            else:
+                return 'mascot', "FALSE"
+
+        if 'Scaffold:Peptide Probability' in param[0]:
+            if float(param[1]) >= 0.99:
+                return 'scaffold', "TRUE"
+            else:
+                return 'scaffold', "FALSE"
 
     if int(mzid.rank) == 1:
         return 'rank', "TRUE"
