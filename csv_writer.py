@@ -2,6 +2,7 @@ import csv
 import multiprocessing
 from multiprocessing import Pool
 from mgf_file import parse_mgf
+from xml_handlers import mzid_handler
 from mzidentml_file import parse_mzident
 from peptide_calc import dm_dalton_ppm
 from peptide_calc import SeriesMatcher
@@ -23,33 +24,31 @@ def writeCSVRows(rows, csvPath):
         for row in rows:
             csvwriter.writerow(row)
 
-def generateRow(mzid, mgf):
-    sequence = mzid['sequence']
-    modifications = mzid['modifications']
+def generateRow(mzid, mgf, parameters):
+    sequence = mzid.sequence
+    modifications = mzid.modifications
     zipped_spectrum = zip(mgf['mz_list'], mgf['intensity_list']) 
+    
     mods = [0.0] * len(sequence)
-    index = 0
-    for i in modifications['location']:
-        #print(i, len(mods))
-        mods[int(i) - 1] = modifications['delta'][index]
-        index += 1
+    for i in modifications:
+        mods[i[1]-1] = i[0]
 
     decision, label = class_label(mzid)
     
-    match = SeriesMatcher(sequence, mods, zipped_spectrum, mzid['meta_parameters']['tolerances'][0], mzid['meta_parameters']['tolerances'][1])
+    match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
     if match.calculate_matches():
-        dm_dalton, dm_ppm = dm_dalton_ppm(mzid['calcpepmass'], mgf['pepmass'])
+        dm_dalton, dm_ppm = dm_dalton_ppm(mzid.calculatedMassToCharge, mgf['pepmass'])
     #TODO remove missing values with 0
         row = {"Id": "UNDEFINED", 
         "Domain_Id": "UNDEFINED",
         "Charge": mgf['charge'],
         "sumI": sum(mgf['intensity_list']), 
         "norm_high_peak_intensity": match.highest_intensity/match.intensity_sum, # int highest peak / sum of intensities
-        "Num_of_Modifications": len(mzid['modifications']['location']),
-        "Pep_Len": len(mzid['sequence']),
-        "Num_Pl": len(mzid['modifications']['location'])/len(mzid['sequence']), # num of mods / peptide length
+        "Num_of_Modifications": len(mzid.modifications),
+        "Pep_Len": len(mzid.sequence),
+        "Num_Pl": len(mzid.modifications)/len(mzid.sequence), # num of mods / peptide length
         "mh(group)": float(mgf['pepmass']), # m + h mass experimental
-        "mh(domain)": float(mzid['calcpepmass']), # m + h mass calculated
+        "mh(domain)": mzid.calculatedMassToCharge, # m + h mass calculated
         "uniqueDM": dm_dalton,
         "uniqueDMppm": dm_ppm,
         "Sum_match_intensities": match.sum_matched_intensities,
@@ -70,8 +69,8 @@ def generateRow(mzid, mgf):
         "mean_matched_frag_ion_errors": match.mean_matching_error, #TODO
         "iqr_matched_frag_ion_errors": match.iqr_matching_error, #TODO interquartiel distance
         "Class_Label": label, #TODO
-        "ClassLabel_Decision": decision,
-        "Params": mzid['meta_parameters']
+        "ClassLabel_Decision": decision#,
+        #"Params": mzid['meta_parameters']
         }
         return row
     else:
@@ -87,23 +86,26 @@ def writeCSVPSMSfromArchive(archivePath):
     for files in archived_files:
         print(files)
 
-    p = Pool(multiprocessing.cpu_count())
-    p.map(processFunction, archived_files)
+    #with Pool(processes=multiprocessing.cpu_count()) as p:
+    #    res = p.map_async(processFunction, archived_files)
+    #    print(res.get())
+
+        processFunction(files)
         
 def processFunction(files):
     rows = []
     mgffp = files[1]
     mzidfp = files[2]
-    print('Processing {}'.format(mzidfp))
-    mzid = parse_mzident(mzidfp)
-    print('Processing {}'.format(mgffp))
+    print('Processing MZID {}'.format(mzidfp))
+    mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
+    print('Processing MGF {}'.format(mgffp))
     mgf, _ = parse_mgf(mgffp)
     for key in mzid:
         if key in mgf:
-            if int(mgf[key]['pepmass']) == int(float(mzid[key]['pepmass'])):
+            if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
                 mgf_dict = mgf[key]
                 mzid_dict = mzid[key]
-                row = generateRow(mzid_dict, mgf_dict)
+                row = generateRow(mzid_dict, mgf_dict, parameters)
                 if row:
                     rows.append(row)
                 else:

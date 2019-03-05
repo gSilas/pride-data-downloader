@@ -1,10 +1,10 @@
-import defusedxml.ElementTree as ET
 import xml
 import csv
 import gc
 import resource
 import time
 import sys
+from xml_handlers import statistics_handler
 
 def write_csv(path, dictionary):
     with open(path, 'a+', newline='') as csvfile:
@@ -29,32 +29,11 @@ def get_memory():
 
 def parse_stat_mzident(mzid_file):
     print(mzid_file)
-    software = []
-    cvparams = []
-    parsed = ET.parse(mzid_file)
-    root = parsed.getroot()
-    for specid_child in root.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisSoftwareList'):
-        for gchild in specid_child.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisSoftware'):
-            if 'name' in gchild:
-                software.append(gchild.attrib['name'])
-            else:
-                software.append(gchild.attrib['id'])
-
-    for data in root.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}DataCollection'):
-        for analysis_data in data.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}AnalysisData'):
-            for specid in analysis_data.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationList'):
-                for specid_child in specid.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationResult'):
-                    for gchild in specid_child.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}SpectrumIdentificationItem'):
-                        for pep_child in gchild.findall('{http://psidev.info/psi/pi/mzIdentML/1.1}cvParam'):
-                            cvparams.append(pep_child.attrib['name'])
-                    break
-
-    del root
-
-    return software, cvparams
+    with open("/home/dan/Documents/Work/PRIDEdata/xml_handlers/kelstrup_hela-res15000_all-fractions.out.cpsx.xml") as f:
+        return statistics_handler.StatisticsHandler().parse(f)
 
 def main():
-    memory_limit() # Limitates maximun memory usage to half
+    memory_limit(0.8) # Limitates maximun memory usage to half
 
     archived_files = []
     with open('data_pride/archive', 'r') as fp:
@@ -68,7 +47,7 @@ def main():
 
         try:
             print("Start Parsing!")
-            tup = parse_stat_mzident(files[2])
+            dictionary = parse_stat_mzident(files[2])
             print("Finished Parsing!")
         except (xml.etree.ElementTree.ParseError, ValueError, MemoryError) as err:
             print("File is bad!")
@@ -79,15 +58,15 @@ def main():
             time.sleep(5)
             continue
 
-        if str(tup[1]) in params_stat:
-            params_stat[str(tup[1])] += 1
+        if str(dictionary['params']) in params_stat:
+            params_stat[str(dictionary['params'])] += 1
         else:
-            params_stat[str(tup[1])] = 1
+            params_stat[str(dictionary['params'])] = 1
 
-        if str(tup[0]) in software_stat:
-            software_stat[str(tup[0])] += 1
+        if str(dictionary['software']) in software_stat:
+            software_stat[str(dictionary['software'])] += 1
         else:
-            software_stat[str(tup[0])] = 1
+            software_stat[str(dictionary['software'])] = 1
 
         print()
     
