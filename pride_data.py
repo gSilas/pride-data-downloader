@@ -9,6 +9,7 @@ import logging
 import argparse
 import requests
 import resource
+import configparser
 
 
 import json_writer
@@ -68,7 +69,13 @@ def get_projectlist(args):
             urls.append(url)
 
     projectList = []
-    bla = []
+
+    modifications = dict()
+    with open('modifications.csv', 'r') as fp:
+        modification_csv = csv.reader(fp, delimiter=';')
+        for row in modification_csv:
+            modifications[row[0]] = True if not '1' in row[1] else False
+
     for url in urls:
         log.info("Requested URL: %s", url)
 
@@ -80,27 +87,35 @@ def get_projectlist(args):
             log.error("No PRIDE server response received!")
             continue
 
+        projectDescriptions = dict()
+
         for project in project_list:
+            unsupported_mod = False
+
             for mod in project['ptmNames']:
-                if mod not in bla:
-                    bla.append(mod)
+                if not mod in modifications:
+                    log.error("Unsupported modification! {} Skipping this project!".format(mod))
+                    unsupported_mod = True
+                    break
+                else:
+                    if not modifications[mod]:
+                        log.error("Unsupported modification! {} Skipping this project!".format(mod))
+                        unsupported_mod = True
+                        break
 
+            if unsupported_mod:
+                continue
 
-        if args.submission:
-            projectList += [project['accession'] for project in project_list if project['submissionType'] == args.submission]
+            if args.submission:
+                if project['submissionType'] == args.submission:
+                    projectList += [project['accession']]
+                    projectDescriptions[project['accession']] = project
 
-        else:
-            projectList += [project['accession'] for project in project_list]
+            else:
+                projectList += [project['accession']]
+                projectDescriptions[project['accession']] = project
 
-        
-    print(bla)
-    with open('modifications.csv', 'a+') as fp:
-            csvwriter = csv.writer(fp, delimiter=';')
-            for mod in bla:
-                print(mod)
-                csvwriter.writerow([mod, ''])
-    sys.exit()
-    return projectList
+    return projectList, projectDescriptions
 
 
 def get_filelist(project):
@@ -190,7 +205,7 @@ def extract_remove_file(f):
     return extracted_file
 
 
-def download_projectlist(projects, folder, single_file=False):
+def download_projectlist(projects, projectDescriptions, folder, single_file=False):
     if projects:
         if not os.path.exists(folder):
             os.mkdir(folder)
@@ -222,6 +237,8 @@ def download_projectlist(projects, folder, single_file=False):
                     if extracted_mgf and extracted_mzid:
                         downloaded_files.append(
                             (project, extracted_mgf, extracted_mzid))
+                        with open('report.json', 'w') as jsonFile:
+                            json.dump(fp=jsonFile, obj=projectDescriptions[project])
                     if single_file:
                         break
 
@@ -250,6 +267,7 @@ if __name__ == "__main__":
     parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
         1, 51), default=1, help="Maximal number of project pages to search.")
     parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
+    parser.add_argument('-INI', '--ini', action='store_true', help="Disregard command line arguments and parse configuration from config.ini!")
     parser.add_argument('-I', '--instruments', nargs='*', default=None,
                         type=str, help="MS/MS instruments used in projects. String used by PRIDE")
     parser.add_argument('-J', '--json', action='store_true', help="Generates a json file from each available project!")
@@ -261,8 +279,26 @@ if __name__ == "__main__":
                         type=str, help="SubmissionType for projects.")
     args = parser.parse_args()
     
+    if args.ini:
+        config = configparser.ConfigParser()
+        config.read('config.ini')
+
+        args.accessions = None if config['DEFAULT']['accessions'] == 'None' else config['DEFAULT']['accessions']
+        args.csv = config['DEFAULT'].getboolean('csv')
+        args.memory = config['DEFAULT'].getfloat('memory')
+        args.number = config['DEFAULT'].getint('number')
+        args.pages = config['DEFAULT'].getint('pages')
+        args.single_file = config['DEFAULT'].getboolean('single_file')
+        args.instruments = None if config['DEFAULT']['instruments'] == 'None' else config['DEFAULT']['instruments']
+        args.json = config['DEFAULT'].getboolean('json')
+        args.species = None if config['DEFAULT']['species'] == 'None' else config['DEFAULT']['species']
+        args.folder = config['DEFAULT']['folder']
+        args.submission = None if config['DEFAULT']['submission'] == 'None' else config['DEFAULT']['submission']
+
+        #print(repr(args))
+
     memory_limit(args.memory)
-    projects = get_projectlist(args)
+    projects, projectDescriptions = get_projectlist(args)
     log.info("Found {} matching projects!".format(len(projects)))
     log.debug(projects)
 
@@ -273,13 +309,13 @@ if __name__ == "__main__":
             for line in fp:
                 for project in projects:
                     if project in line:
-                        projects.remove(projects)
+                        projects.remove(project)
 
     if args.single_file:
         log.info('Only downloading single file tuples for each available project!')
 
     if projects:
-        downloaded_files = download_projectlist(projects, args.folder, args.single_file)
+        downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
 
         jsonPath = os.path.join(args.folder, 'psms.json')
         if downloaded_files:

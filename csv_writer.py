@@ -93,31 +93,35 @@ def writeCSVPSMSfromArchive(archivePath):
         processFunction(files)
         
 def processFunction(files):
-    rows = []
-    mgffp = files[1]
-    mzidfp = files[2]
-    print('Processing MZID {}'.format(mzidfp))
-    mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
-    if 'search tolerance minus value' and 'search tolerance plus value' in parameters:
-        print('Processing MGF {}'.format(mgffp))
-        mgf, _ = parse_mgf(mgffp)
-        for key in mzid:
-            if key in mgf:
-                if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
-                    mgf_dict = mgf[key]
-                    mzid_dict = mzid[key]
-                    row = generateRow(mzid_dict, mgf_dict, parameters)
-                    if row:
-                        rows.append(row)
+    try:
+        rows = []
+        mgffp = files[1]
+        mzidfp = files[2]
+        print('Processing MZID {}'.format(mzidfp))
+        mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
+        if 'search tolerance minus value' and 'search tolerance plus value' in parameters:
+            print('Processing MGF {}'.format(mgffp))
+            mgf, _ = parse_mgf(mgffp)
+            for key in mzid:
+                if key in mgf:
+                    if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
+                        mgf_dict = mgf[key]
+                        mzid_dict = mzid[key]
+                        row = generateRow(mzid_dict, mgf_dict, parameters)
+                        if row:
+                            rows.append(row)
+                        else:
+                            print("No matching peaks: {}".format(key))
                     else:
-                        print("No matching peaks: {}".format(key))
+                        print("No matching pepmass: {}".format(key))
                 else:
-                    print("No matching pepmass: {}".format(key))
-            else:
-                print("Not found in mgf: {}".format(key))
-        print('Writing CSV!')
-        writeCSVRows(rows, mgffp+".csv")
-    else:
-        print('No tolerances found: {}'.format(mzidfp))
+                    print("Not found in mgf: {}".format(key))
+            print('Writing CSV!')
+            writeCSVRows(rows, mgffp+".csv")
+        else:
+            print('No tolerances found: {}'.format(mzidfp))
+    except Exception as err:
+        print("Caught Exception {}".format(err))
+
 if __name__ == "__main__":
     writeCSVPSMSfromArchive("data_pride/archive")
