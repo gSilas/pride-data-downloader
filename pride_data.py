@@ -267,10 +267,10 @@ if __name__ == "__main__":
         description="Download PRIDE projects and create Nocoy trainable csv!")
     parser.add_argument('-A', '--accessions', nargs='*', default=None,
                         type=list, help="Specify certain projects by accessions to download.")
-    parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available project!")
+    parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available file tuple!")
     parser.add_argument('-M', '--memory', type=float, default=0.8, help="Limits the RAM for the program to the given ratio of the available RAM!")
     parser.add_argument('-N', '--number', metavar='1..10000', type=int, choices=range(
-        1, 10001), default=1, help="Maximal number of projects with fitting metadata to include.")
+        1, 10001), default=1, help="Maximal number of projects per page with fitting metadata to include.")
     parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
         1, 51), default=1, help="Maximal number of project pages to search.")
     parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
