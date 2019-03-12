@@ -69,6 +69,7 @@ def get_projectlist(args):
             urls.append(url)
 
     projectList = []
+    projectDescriptions = dict()
 
     modifications = dict()
     with open('modifications.csv', 'r') as fp:
@@ -86,8 +87,6 @@ def get_projectlist(args):
         else:
             log.error("No PRIDE server response received!")
             continue
-
-        projectDescriptions = dict()
 
         for project in project_list:
             unsupported_mod = False
@@ -134,6 +133,7 @@ def get_filelist(project):
         log.error(err)
         log.error("Request to {} could not be decoded!".format(url))
         log.error("Project at {} !".format(project))
+        return None
 
     for pfile in project_files:
         if 'downloadLink' in pfile:
@@ -225,22 +225,29 @@ def download_projectlist(projects, projectDescriptions, folder, single_file=Fals
 
                 for mgf_file, mzid_file in files[key]:
                     mgf = download_file(mgf_file, os.path.join(folder, key))
-                    if mgf:
+                    mzid = download_file(mzid_file, os.path.join(folder, key))
+
+                    if mgf and mzid:
                         extracted_mgf = extract_remove_file(mgf)
                         log.info("Downloaded: {} to {}".format(
                             mgf_file, extracted_mgf))
-                    mzid = download_file(mzid_file, os.path.join(folder, key))
-                    if mzid:
                         extracted_mzid = extract_remove_file(mzid)
                         log.info("Downloaded: {} to {}".format(
                             mzid_file, extracted_mzid))
-                    if extracted_mgf and extracted_mzid:
-                        downloaded_files.append(
-                            (project, extracted_mgf, extracted_mzid))
-                        with open('report.json', 'w') as jsonFile:
-                            json.dump(fp=jsonFile, obj=projectDescriptions[project])
+                        if extracted_mgf and extracted_mzid:
+                            downloaded_files.append((project, extracted_mgf, extracted_mzid))
+                    else:
+                        log.warning("No generated tuple: Removing files {}".format((mgf, mzid)))
+                        if os.path.exists(str(mzid)):
+                            os.remove(mzid)
+                        if os.path.exists(str(mgf)):
+                            os.remove(mgf)
+
                     if single_file:
                         break
+                    
+                with open(os.path.join(folder, key, 'report.json'), 'w') as jsonFile:
+                        json.dump(fp=jsonFile, obj=projectDescriptions[project])
 
     return downloaded_files
 
