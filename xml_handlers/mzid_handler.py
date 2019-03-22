@@ -2,6 +2,7 @@ import xml.sax
 
 
 class _Result(object):
+    """Representation of a PSM"""
     rank = ''
     modifications = []
     sequence = ''
@@ -12,7 +13,23 @@ class _Result(object):
 
 
 def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod, result_params):
-    
+    '''Creates a Result object for a specific PSM.
+
+        :param result_spec_ident: Spectrum identifications contain experimental and calculated masses and rank.
+        :type result_spec_ident: tuple
+        :param result_pep_evid: Peptide evidences expresses if a peptide is decoy.
+        :type result_pep_evid: bool
+        :param result_seq: Identified PSM peptide sequence
+        :type result_seq: str
+        :param result_mod: Contains modifications on the identfified peptide.
+        :type result_mod: list
+        :param result_params: Parameters of the identification provided by Analysis software.
+        :type result_params: list
+
+        :returns: Result for the PSM
+        :rtype: _Result
+    '''  
+
     _internal_result = None
 
     if 'X' in result_seq or 'B' in result_seq or 'Z' in result_seq or 'J' in result_seq:
@@ -36,6 +53,8 @@ def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod, resu
 
 
 class MZIdentMLHandler(xml.sax.handler.ContentHandler):
+    """Implements a SAX xml parser for mzids"""
+
     def __init__(self):
         self._result_params = dict()
 
@@ -58,6 +77,12 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
         self._current_spec_id = str()
 
     def parse(self, f):
+        """Parses a given file and returns PSM Results and parameters.
+        
+        :param f: file path to mzid file
+        :type str
+        """
+        
         xml.sax.parse(f, self)
 
         results = dict()

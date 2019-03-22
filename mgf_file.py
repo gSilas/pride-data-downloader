@@ -2,12 +2,14 @@ import re
 
 
 def generate_mgf_list(input_file):
+    """ Generates List from MGF """ 
     with open(input_file, 'r') as mgf_file:
         mgf_list = mgf_file.read().split('\n')
     return mgf_list
 
 
 def get_mgf_tokens(mgf_list):
+    """ Calculates tokens from MGF-list """
     index = 0
     tokens = dict()
     line = mgf_list[index]
@@ -23,6 +25,8 @@ def get_mgf_tokens(mgf_list):
 
 
 def parse_mgf(input_file):
+    """ Parses MGF by calculating offsets and indxing individual lines in an MGF """
+
     entries = dict()
     mgf_list = generate_mgf_list(input_file)
     tokens = get_mgf_tokens(mgf_list)

@@ -17,6 +17,7 @@ HEADER = ["Id", "Domain_Id", "Charge", "sumI", "norm_high_peak_intensity", "Num_
 "iqr_matched_frag_ion_errors", "Class_Label", "ClassLabel_Decision", "Params"]
 
 def writeCSVRows(rows, csvPath):
+    """ Writes multiple rows to CSV """
     with open(csvPath, 'a+', newline='') as csvfile:
         csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=HEADER)
         csvwriter.writeheader()
@@ -25,6 +26,7 @@ def writeCSVRows(rows, csvPath):
             csvwriter.writerow(row)
 
 def generateRow(mzid, mgf, parameters):
+    """ Generates an individual row for csv from PSM """
     sequence = mzid.sequence
     modifications = mzid.modifications
     zipped_spectrum = zip(mgf['mz_list'], mgf['intensity_list']) 
@@ -77,6 +79,7 @@ def generateRow(mzid, mgf, parameters):
         return None
 
 def writeCSVPSMSfromArchive(archivePath):
+    """ Writes PSMs to CSV from Archive """
     archived_files = []
     with open(archivePath, 'r') as fp:
         csvreader = csv.reader(fp, delimiter=';')
@@ -86,13 +89,14 @@ def writeCSVPSMSfromArchive(archivePath):
     for files in archived_files:
         print(files)
 
-    #with Pool(processes=multiprocessing.cpu_count()) as p:
-    #    res = p.map_async(processFunction, archived_files)
-    #    print(res.get())
+    with Pool(processes=multiprocessing.cpu_count()) as p:
+        res = p.map_async(processFunction, archived_files)
+        print(res.get())
 
-        processFunction(files)
+       # processFunction(files)
         
 def processFunction(files):
+    """ Data-parallel function generating CSV """
     try:
         rows = []
         mgffp = files[1]

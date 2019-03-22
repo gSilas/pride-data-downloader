@@ -3,6 +3,8 @@ import gc
 import time
 import xml.etree.cElementTree as ET
 
+""" DEPRECATED """
+
 def parse_mzident(mzid_file):
     entries = dict()
     try:

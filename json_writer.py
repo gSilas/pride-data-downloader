@@ -5,15 +5,18 @@ from mzidentml_file import parse_mzident
 
 
 def serializePSM(psm):
+    """ Serializes a PSM to json """
     return jsonpickle.encode(psm, unpicklable=False)
 
 
 def writeJSONPSM(filename, psm):
+    """ Writes a PSM json """
     with open(filename, 'w') as fp:
         fp.write(jsonpickle.encode(psm, unpicklable=False))
 
 
 def writeJSONPSMSfromArchive(archivePath, jsonPath):
+    """ Generates and writes PSM Jsons """
     archived_files = []
     with open(archivePath, 'r') as fp:
         csvreader = csv.reader(fp, delimiter=';')

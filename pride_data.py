@@ -44,6 +44,7 @@ def get_memory():
     return free_memory
 
 def get_projectlist(args):
+    """Returns a projectlist containing all valid project accessions"""
 
     project_list = []
 
@@ -93,12 +94,12 @@ def get_projectlist(args):
 
             for mod in project['ptmNames']:
                 if not mod in modifications:
-                    log.error("Unsupported modification! {} Skipping this project!".format(mod))
+                    log.warning("Unsupported modification! {} Skipping this project!".format(mod))
                     unsupported_mod = True
                     break
                 else:
                     if not modifications[mod]:
-                        log.error("Unsupported modification! {} Skipping this project!".format(mod))
+                        log.warning("Unsupported modification! {} Skipping this project!".format(mod))
                         unsupported_mod = True
                         break
 
@@ -118,7 +119,7 @@ def get_projectlist(args):
 
 
 def get_filelist(project):
-    # Output project files
+    """ Output project file tuples """
 
     files = dict()
     mgf_files = dict()
@@ -206,6 +207,17 @@ def extract_remove_file(f):
 
 
 def download_projectlist(projects, projectDescriptions, folder, single_file=False):
+    """ Downloads a list of file tuples to a destination folder 
+
+        :param projects: List of file tuples with ftp links.
+        :type projects: list
+        :param projectDescriptions: Dictionary containing the descriptions of projects per accession.
+        :type projectDescriptions: dict
+        :param folder: Destination folder of the downloads
+        :type folder: str
+        :param single_file: stops execution after donwloading a single file per project
+        :type single_file: bool
+    """
     if projects:
         if not os.path.exists(folder):
             os.mkdir(folder)

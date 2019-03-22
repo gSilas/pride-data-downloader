@@ -6,6 +6,7 @@ class StatisticsHandler(xml.sax.handler.ContentHandler):
         self._spectrum_identification_item = False
 
     def parse(self, f):
+        """ SAX parser for mzid extracting statistics about software and identification parameters. """
         xml.sax.parse(f, self)
         return self._result
 

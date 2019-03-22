@@ -5,6 +5,7 @@ def class_label(mzid):
 
    # print(mzid.parameters)
     for param in mzid.parameters:
+
         if 'Mascot:identity threshold' == param[0]:
             mascot_threshold = param[1]
 
@@ -23,7 +24,7 @@ def class_label(mzid):
         else:
             return 'mascot', "FALSE"
 
-    elif int(mzid.rank) == 1:
+    if int(mzid.rank) == 1:
         return 'rank', "TRUE"
     elif int(mzid.rank) > 1:
         return 'rank', "FALSE"
