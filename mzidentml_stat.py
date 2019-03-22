@@ -7,6 +7,7 @@ import sys
 from xml_handlers import statistics_handler
 
 def write_csv(path, dictionary):
+    """ Writes Statistics from MZID to CSV """
     with open(path, 'a+', newline='') as csvfile:
         csvwriter = csv.DictWriter(
             csvfile, delimiter=';', fieldnames=list(dictionary))
@@ -15,6 +16,7 @@ def write_csv(path, dictionary):
         print("{} written!".format(path))
 
 def memory_limit(ratio):
+    """ Limits process memory to a fixed ratio """
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * ratio), hard))
 
@@ -28,8 +30,9 @@ def get_memory():
     return free_memory
 
 def parse_stat_mzident(mzid_file):
+    """ Parses MZID and generates statistics """
     print(mzid_file)
-    with open("/home/dan/Documents/Work/PRIDEdata/xml_handlers/kelstrup_hela-res15000_all-fractions.out.cpsx.xml") as f:
+    with open(mzid_file) as f:
         return statistics_handler.StatisticsHandler().parse(f)
 
 def main():

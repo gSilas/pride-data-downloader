@@ -31,10 +31,12 @@ handler.setLevel(logging.INFO)
 log.addHandler(handler)
 
 def memory_limit(ratio):
+    """ Limits this processes system memory to a fixed ratio """
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * ratio), hard))
 
 def get_memory():
+    """ Calculates free system memory """
     with open('/proc/meminfo', 'r') as mem:
         free_memory = 0
         for i in mem:
@@ -160,6 +162,7 @@ def get_filelist(project):
 
 
 def download_file(url, dest_folder):
+    """ Downloads a file """
     orig_filename = url.split('/')[-1]
 
     if not os.path.exists(dest_folder):
@@ -183,6 +186,7 @@ def download_file(url, dest_folder):
 
 
 def extract_remove_file(f):
+    """ Extracts and removes gzipped file """
     compressed_file = None
     extracted_file = None
 
@@ -265,6 +269,7 @@ def download_projectlist(projects, projectDescriptions, folder, single_file=Fals
 
 
 def write_archive_file(archivePath, files):
+    """ Writes archive file containing downloaded and extracted project file tuples """
     with open(archivePath, 'a+') as fp:
         csvwriter = csv.writer(fp, delimiter=';')
         for f in files:
