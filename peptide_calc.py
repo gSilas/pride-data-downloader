@@ -17,7 +17,21 @@ mass_hydrogen = mass.calculate_mass(formula='H')
 
 
 def transform_sequence_to_masssequence(sequence, mods):
-    """ Amino acids sequence to masssequence """
+    """
+    Amino acids sequence to masssequence
+
+    Parameters
+    ----------
+    sequence: str
+        Sequence of a peptide
+    mods: list
+        Modifications of the peptide
+
+    Returns
+    -------
+    list
+        masses of indices
+    """
 
     mass_sequence = []
     index = 0
@@ -31,7 +45,21 @@ def transform_sequence_to_masssequence(sequence, mods):
 
 @jit(nopython=True)
 def calculate_b_Series(sequence, charge):
-    """ Calculate b series for given sequence relative to charge """
+    """ 
+    Calculate b series for given sequence relative to charge 
+    
+    Parameters
+    ----------
+    sequence: list
+        Sequence of masses from peptide
+    charge: int
+        Charge of peptide
+
+    Returns
+    -------
+    list
+        b series
+    """
 
     b_series = []
     b_series.append(
@@ -45,7 +73,21 @@ def calculate_b_Series(sequence, charge):
 # y series implementation using numba
 @jit(nopython=True)
 def calculate_y_Series(sequence, charge):
-    """ Calculate y series for given sequence relative to charge """
+    """ 
+    Calculate y series for given sequence relative to charge 
+    
+    Parameters
+    ----------
+    sequence: list
+        Sequence of masses from peptide
+    charge: int
+        Charge of peptide
+
+    Returns
+    -------
+    list
+        b series
+    """
 
     y_series = [0.0] * len(sequence)
     y_series[0] = ((sequence[len(sequence)-1] +
@@ -61,7 +103,22 @@ def calculate_y_Series(sequence, charge):
 
 @jit(nopython=True)
 def dm_dalton_ppm(calculated_mass, experimental_mass):
-    """ Difference in dalton and ppm """
+    """ 
+    Difference in dalton and ppm 
+    
+    Parameters
+    ----------
+    calculated_mass: int
+        calculated mass of peptide sequence
+        
+    experimental_mass: int
+        experimental mass of peptide sequence
+   
+    Returns
+    -------
+    tuple
+        delta in ppm and delta in dalton
+    """
     
     dm_dalton = calculated_mass - experimental_mass
     dm_ppm = (dm_dalton/calculated_mass)*1000000.0
@@ -69,7 +126,19 @@ def dm_dalton_ppm(calculated_mass, experimental_mass):
 
 @jit(nopython=True)
 def mean(array):
-    """ calculates mean of array """ 
+    """ 
+    Calculates mean of array
+    
+    Parameters
+    ----------
+    array: list
+        list of integers
+
+    Returns
+    -------
+    int
+        median
+    """ 
 
     sum = 0.0
     for error in array:
@@ -78,7 +147,19 @@ def mean(array):
 
 @jit(nopython=True)
 def median(array):
-    """ calculates the median in an array """
+    """ 
+    Calculates the median in an array. 
+
+    Parameters
+    ----------
+    array: list
+        list of integers
+
+    Returns
+    -------
+    int
+        median
+    """
 
     if len(array) % 2 == 1:
         return array[int(len(array) / 2)]
@@ -87,7 +168,24 @@ def median(array):
 
 @jit(nopython=True)
 def match_series_and_spectrum(series, zipped_data, upperthreshold, lowerthreshold):
-    """ matches a y or b series to a sorted and zipped spectrum (m/z, intensities) """
+    """ 
+    matches a y or b series to a sorted and zipped spectrum (m/z, intensities)
+    
+    Parameters
+    ----------
+    series: list
+        list of floats representing a masses
+    zipped_data: tuple
+        tuple of data containing intensities and masses
+    upperthreshold: float
+        upper threshold of a match
+    lowerthreshold: float
+        lower threshold of a match
+
+    Returns
+    -------
+    tuple
+    """
 
     matched_peaks = []
     matched_intensities = []
@@ -127,7 +225,19 @@ def match_series_and_spectrum(series, zipped_data, upperthreshold, lowerthreshol
 
 @jit(nopython=True)
 def spectrum_statistics(zipped_data):
-    """ calculates highest intensity and sum of intensities """
+    """ 
+    calculates highest intensity and sum of intensities 
+    
+    Parameters
+    ----------
+    zipped_data: tuple
+        tuple of data containing intensities and masses
+
+    Returns
+    -------
+    tuple
+        highest intensities and sum of intensities
+    """
     highest_intensity = 0.0
     intensity_sum = 0.0
 
@@ -141,7 +251,9 @@ def spectrum_statistics(zipped_data):
     return highest_intensity, intensity_sum
 
 class SeriesMatcher(object):
-    """ Represents matches of series and spectras and additional factors """
+    """ 
+    Represents matches of series and spectras and additional factors 
+    """
 
     def __init__(self, sequence, mods, zipped_spectrum, upperthreshold, lowerthreshold):
         self.masssequence = transform_sequence_to_masssequence(sequence, mods)
@@ -150,7 +262,14 @@ class SeriesMatcher(object):
         self.lowerthreshold = lowerthreshold
     
     def calculate_matches(self):
-        """ Calculates matches of series and spectras """
+        """ 
+        Calculates matches of series and spectras 
+
+        Returns
+        -------
+        bool
+            success or failure
+        """
 
         self.highest_intensity, self.intensity_sum = spectrum_statistics(self.zipped_data)
         #print(self.zipped_data)

@@ -2,14 +2,40 @@ import re
 
 
 def generate_mgf_list(input_file):
-    """ Generates List from MGF """ 
+    """ 
+    Generates List from MGF 
+    
+    Parameters
+    ----------
+    input_file: str
+        path to mgf file
+
+    Returns
+    -------
+    list
+        lines in an mgf file
+
+    """ 
     with open(input_file, 'r') as mgf_file:
         mgf_list = mgf_file.read().split('\n')
     return mgf_list
 
 
 def get_mgf_tokens(mgf_list):
-    """ Calculates tokens from MGF-list """
+    """ 
+    Calculates tokens from MGF-list 
+    
+    Parameters
+    ----------
+    mgf_list: list
+        lines of an mgf
+
+    Returns
+    -------
+    dict
+        tokens in an mgf
+    
+    """
     index = 0
     tokens = dict()
     line = mgf_list[index]
@@ -25,7 +51,20 @@ def get_mgf_tokens(mgf_list):
 
 
 def parse_mgf(input_file):
-    """ Parses MGF by calculating offsets and indxing individual lines in an MGF """
+    """ 
+    Parses MGF by calculating offsets and indexing individual lines in an MGF 
+    
+    Parameters
+    ----------
+    input_file : str
+        path to an mgf
+
+    Returns
+    -------
+    tuple
+        entries in the mgf and tokens of the mgf
+
+    """
 
     entries = dict()
     mgf_list = generate_mgf_list(input_file)

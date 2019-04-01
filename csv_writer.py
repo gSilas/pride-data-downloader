@@ -17,7 +17,17 @@ HEADER = ["Id", "Domain_Id", "Charge", "sumI", "norm_high_peak_intensity", "Num_
 "iqr_matched_frag_ion_errors", "Class_Label", "ClassLabel_Decision", "Params"]
 
 def writeCSVRows(rows, csvPath):
-    """ Writes multiple rows to CSV """
+    """ 
+    Writes multiple rows to CSV 
+    
+    Parameters
+    ----------
+    rows: list
+        rows for csv
+    csvPath: str
+        path to csv
+    
+    """
     with open(csvPath, 'a+', newline='') as csvfile:
         csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=HEADER)
         csvwriter.writeheader()
@@ -26,7 +36,24 @@ def writeCSVRows(rows, csvPath):
             csvwriter.writerow(row)
 
 def generateRow(mzid, mgf, parameters):
-    """ Generates an individual row for csv from PSM """
+    """ 
+    Generates an individual row for csv from PSM 
+    
+    Parameters
+    ----------
+    mzid: _Result
+        mzid representation
+    mgf: dict
+        mgf representation
+    parameters: dict
+        parameters for a psm
+
+    Returns
+    -------
+    dict
+        representing a csv PSM row
+
+    """
     sequence = mzid.sequence
     modifications = mzid.modifications
     zipped_spectrum = zip(mgf['mz_list'], mgf['intensity_list']) 
@@ -96,7 +123,15 @@ def writeCSVPSMSfromArchive(archivePath):
        # processFunction(files)
         
 def processFunction(files):
-    """ Data-parallel function generating CSV """
+    """ 
+    Data-parallel function generating CSV 
+    
+    Parameters
+    ----------
+    files: list
+        list of file tuples
+        
+    """
     try:
         rows = []
         mgffp = files[1]

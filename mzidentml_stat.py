@@ -1,13 +1,23 @@
 import xml
 import csv
 import gc
-import resource
 import time
 import sys
 from xml_handlers import statistics_handler
+from utils import get_memory
+from utils import memory_limit
 
 def write_csv(path, dictionary):
-    """ Writes Statistics from MZID to CSV """
+    """ 
+    Writes Statistics from MZID to CSV 
+    
+    Parameters
+    ----------
+    path: str
+        output path of csv
+    dictionary: dict
+        dictionary representing csv
+    """
     with open(path, 'a+', newline='') as csvfile:
         csvwriter = csv.DictWriter(
             csvfile, delimiter=';', fieldnames=list(dictionary))
@@ -15,22 +25,20 @@ def write_csv(path, dictionary):
         csvwriter.writerow(dictionary)
         print("{} written!".format(path))
 
-def memory_limit(ratio):
-    """ Limits process memory to a fixed ratio """
-    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-    resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * ratio), hard))
-
-def get_memory():
-    with open('/proc/meminfo', 'r') as mem:
-        free_memory = 0
-        for i in mem:
-            sline = i.split()
-            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-                free_memory += int(sline[1])
-    return free_memory
-
 def parse_stat_mzident(mzid_file):
-    """ Parses MZID and generates statistics """
+    """ 
+    Parses MZID and generates statistics 
+    
+    Parameters
+    ----------
+    mzid_file: str
+        path to mzid file
+
+    Returns
+    -------
+    dict
+        statistics dictionary
+    """
     print(mzid_file)
     with open(mzid_file) as f:
         return statistics_handler.StatisticsHandler().parse(f)

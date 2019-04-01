@@ -8,12 +8,14 @@ import shutil
 import logging
 import argparse
 import requests
-import resource
 import configparser
 
 
 import json_writer
 import csv_writer
+
+from utils import get_memory
+from utils import memory_limit
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -30,23 +32,22 @@ handler.setFormatter(logging.Formatter(
 handler.setLevel(logging.INFO)
 log.addHandler(handler)
 
-def memory_limit(ratio):
-    """ Limits this processes system memory to a fixed ratio """
-    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-    resource.setrlimit(resource.RLIMIT_AS, (int(get_memory() * 1024 * ratio), hard))
-
-def get_memory():
-    """ Calculates free system memory """
-    with open('/proc/meminfo', 'r') as mem:
-        free_memory = 0
-        for i in mem:
-            sline = i.split()
-            if str(sline[0]) in ('MemFree:', 'Buffers:', 'Cached:'):
-                free_memory += int(sline[1])
-    return free_memory
-
 def get_projectlist(args):
-    """Returns a projectlist containing all valid project accessions"""
+    """
+    Returns a projectlist containing all valid project accessions.
+    
+    Parameters
+    ----------
+    args : list
+        programm execution arguments
+
+    Returns
+    -------
+    tuple(list, dict)
+        tuple containing list of projects and dict of matched project descriptions 
+        
+
+    """
 
     project_list = []
 
@@ -121,7 +122,20 @@ def get_projectlist(args):
 
 
 def get_filelist(project):
-    """ Output project file tuples """
+    """ 
+    Output project file tuples.
+
+    Parameters
+    ----------
+    project : str
+        PRIDE project acession ID
+
+    Returns
+    -------
+    list
+        Files associated with a project
+    
+    """
 
     files = dict()
     mgf_files = dict()
@@ -162,7 +176,22 @@ def get_filelist(project):
 
 
 def download_file(url, dest_folder):
-    """ Downloads a file """
+    """ 
+    Downloads a file.
+    
+    Parameters
+    ----------
+    url : str
+        url to a downloadable file.
+    dest_folder : str
+        path to a destination for the downloaded file.
+
+    Returns
+    -------
+    str
+        path to the downloaded file
+
+    """
     orig_filename = url.split('/')[-1]
 
     if not os.path.exists(dest_folder):
@@ -186,7 +215,20 @@ def download_file(url, dest_folder):
 
 
 def extract_remove_file(f):
-    """ Extracts and removes gzipped file """
+    """ 
+    Extracts and removes gzipped file.
+
+    Parameters
+    ----------
+    f : str
+        Path to a gzipped file.
+
+    Returns
+    -------
+    str
+        Path of extracted file.
+
+    """
     compressed_file = None
     extracted_file = None
 
@@ -211,16 +253,25 @@ def extract_remove_file(f):
 
 
 def download_projectlist(projects, projectDescriptions, folder, single_file=False):
-    """ Downloads a list of file tuples to a destination folder 
-
-        :param projects: List of file tuples with ftp links.
-        :type projects: list
-        :param projectDescriptions: Dictionary containing the descriptions of projects per accession.
-        :type projectDescriptions: dict
-        :param folder: Destination folder of the downloads
-        :type folder: str
-        :param single_file: stops execution after donwloading a single file per project
-        :type single_file: bool
+    """ 
+    Downloads a list of file tuples to a destination folder.
+    
+    Parameters
+    ----------
+    projects: list
+        List of file tuples with ftp links.
+    projectDescriptions: dict
+        Dictionary containing the descriptions of projects per accession.
+    folder: str
+        Destination folder of the downloads
+    single_file: bool
+        stops execution after donwloading a single file per project
+    
+    Returns
+    -------
+    list
+        List of downloaded files.
+    
     """
     if projects:
         if not os.path.exists(folder):
@@ -269,7 +320,22 @@ def download_projectlist(projects, projectDescriptions, folder, single_file=Fals
 
 
 def write_archive_file(archivePath, files):
-    """ Writes archive file containing downloaded and extracted project file tuples """
+    """ 
+    Writes archive file containing downloaded and extracted project file tuples! 
+    
+    Parameters
+    ----------
+    archivePath: str
+        Path to the generated archive file.
+    files: list
+        Unordered List of the downloaded and extracted file tuples.
+    
+    Returns
+    -------
+    str
+        Path of generated archive file.
+
+    """
     with open(archivePath, 'a+') as fp:
         csvwriter = csv.writer(fp, delimiter=';')
         for f in files:

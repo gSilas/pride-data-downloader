@@ -1,4 +1,17 @@
 def class_label(mzid):
+    """
+    Inferes a class label based on predefined conditions.
+    
+    Parameters
+    ----------
+    mzid: _Result
+        mzid result object
+    
+    Returns
+    -------
+    tuple
+        Contains the label and the rule used for the label decision.
+    """
 
     mascot_score = -999
     mascot_threshold = -999
