@@ -367,6 +367,7 @@ if __name__ == "__main__":
                         type=str, help="Folder containing downloaded data relative to the python script!")
     parser.add_argument('-Sub', '--submission', default="COMPLETE",
                         type=str, help="SubmissionType for projects.")
+    parser.add_argument('-CO', '--cores', default=4, type=int, help="Maximal number of cores!")
     args = parser.parse_args()
     
     if args.ini:
@@ -384,6 +385,7 @@ if __name__ == "__main__":
         args.species = None if config['DEFAULT']['species'] == 'None' else config['DEFAULT']['species']
         args.folder = config['DEFAULT']['folder']
         args.submission = None if config['DEFAULT']['submission'] == 'None' else config['DEFAULT']['submission']
+        args.cores = config['DEFAULT'].getint('cores')
 
         #print(repr(args))
 
@@ -412,7 +414,7 @@ if __name__ == "__main__":
             write_archive_file(archivePath, downloaded_files)
 
     if args.csv:
-        csv_writer.writeCSVPSMSfromArchive(archivePath)
+        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
 
     if args.json:
         json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)

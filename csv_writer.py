@@ -1,3 +1,5 @@
+import sys
+import logging
 import csv
 import multiprocessing
 from multiprocessing import Pool
@@ -8,6 +10,21 @@ from peptide_calc import dm_dalton_ppm
 from peptide_calc import SeriesMatcher
 from peptide_labeler import class_label
 import math
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+handler = logging.FileHandler('debug.log', mode='w')
+handler.setFormatter(logging.Formatter(
+    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+handler.setLevel(logging.DEBUG)
+log.addHandler(handler)
+
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(logging.Formatter(
+    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+handler.setLevel(logging.INFO)
+log.addHandler(handler)
 
 HEADER = ["Id", "Domain_Id", "Charge", "sumI", "norm_high_peak_intensity", "Num_of_Modifications", "Pep_Len", "Num_Pl", 
 "mh(group)", "mh(domain)", "uniqueDM", "uniqueDMppm", "Sum_match_intensities", "Log_sum_match_intensity", "b+_ratio", 
@@ -105,20 +122,21 @@ def generateRow(mzid, mgf, parameters):
     else:
         return None
 
-def writeCSVPSMSfromArchive(archivePath):
+def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores):
     """ Writes PSMs to CSV from Archive """
     archived_files = []
     with open(archivePath, 'r') as fp:
         csvreader = csv.reader(fp, delimiter=';')
         for row in csvreader:
             archived_files.append(row)
-    print("Archived Files:")
+    log.info("Archived Files:")
     for files in archived_files:
-        print(files)
+        log.info(files)
 
-    with Pool(processes=multiprocessing.cpu_count()) as p:
+    processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
+    with Pool(processes=processes) as p:
         res = p.map_async(processFunction, archived_files)
-        print(res.get())
+        log.info(res.get())
 
        # processFunction(files)
         
@@ -132,35 +150,38 @@ def processFunction(files):
         list of file tuples
         
     """
-    try:
-        rows = []
-        mgffp = files[1]
-        mzidfp = files[2]
-        print('Processing MZID {}'.format(mzidfp))
-        mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
-        if 'search tolerance minus value' and 'search tolerance plus value' in parameters:
-            print('Processing MGF {}'.format(mgffp))
-            mgf, _ = parse_mgf(mgffp)
-            for key in mzid:
-                if key in mgf:
-                    if int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge)):
-                        mgf_dict = mgf[key]
-                        mzid_dict = mzid[key]
-                        row = generateRow(mzid_dict, mgf_dict, parameters)
-                        if row:
-                            rows.append(row)
-                        else:
-                            print("No matching peaks: {}".format(key))
-                    else:
-                        print("No matching pepmass: {}".format(key))
-                else:
-                    print("Not found in mgf: {}".format(key))
-            print('Writing CSV!')
-            writeCSVRows(rows, mgffp+".csv")
+    rows = []
+    mgffp = files[1]
+    mzidfp = files[2]
+    log.info('Processing MZID {}'.format(mzidfp))
+    mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
+
+    if not 'search tolerance minus value' and 'search tolerance plus value' in parameters:
+        log.error('No tolerances found: {}'.format(mzidfp))
+
+    log.info('Processing MGF {}'.format(mgffp))
+    mgf, _ = parse_mgf(mgffp)
+
+    for key in mzid:
+
+        if key not in mgf:
+            log.error("Not found in mgf: {}".format(key))
+            continue
+
+        if not (int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge))):
+            log.error("No matching pepmass: {}".format(key))
+            continue 
+
+        mgf_dict = mgf[key]
+        mzid_dict = mzid[key]
+        row = generateRow(mzid_dict, mgf_dict, parameters)
+        if row:
+            rows.append(row)
         else:
-            print('No tolerances found: {}'.format(mzidfp))
-    except Exception as err:
-        print("Caught Exception {}".format(err))
+            log.error("No matching peaks: {}".format(key))
+            
+    log.info('Writing CSV!')
+    writeCSVRows(rows, mgffp+".csv")
 
 if __name__ == "__main__":
-    writeCSVPSMSfromArchive("data_pride/archive")
+    writeCSVPSMSfromArchive("data_pride/archive", 4)
