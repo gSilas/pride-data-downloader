@@ -161,7 +161,7 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
                     (attrs.getValue('monoisotopicMassDelta'), attrs.getValue('location')))
 
         elif name == 'userParam':
-            if 'fragment_ion_tolerance' in attrs.getValue('name'):
+            if 'fragment_ion_tolerance' in attrs.getValue('name') and "dalton" in attrs.getValue("unitName"):
                 self._result_params['search tolerance plus value'] = float(
                         attrs.getValue('value'))
                 self._result_params['search tolerance minus value'] = float(
