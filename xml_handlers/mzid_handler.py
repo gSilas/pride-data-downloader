@@ -136,17 +136,10 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
                         (attrs.getValue('name'),)
 
             elif 'FragmentTolerance' in self._open_tags:
-<<<<<<< HEAD
-                if "search tolerance plus value" in attrs.getValue('name'):
-                    self._result_params['search tolerance plus value'] = float(
-                        attrs.getValue('value'))
-                elif "search tolerance minus value" in attrs.getValue('name'):
-=======
                 if "search tolerance plus value" in attrs.getValue("name") and "dalton" in attrs.getValue("unitName"):
                     self._result_params['search tolerance plus value'] = float(
                         attrs.getValue('value'))
                 elif "search tolerance minus value" in attrs.getValue("name") and "dalton" in attrs.getValue("unitName"):
->>>>>>> github-release
                     self._result_params['search tolerance minus value'] = float(
                         attrs.getValue('value'))
 
