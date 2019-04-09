@@ -81,7 +81,12 @@ def generateRow(mzid, mgf, parameters):
 
     decision, label = class_label(mzid)
     
-    match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
+    if 'search tolerance plus value' in parameters and 'search tolerance minus value' in parameters:
+        match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
+    else:
+        log.error("No tolerance found!")
+        return None
+
     if match.calculate_matches():
         dm_dalton, dm_ppm = dm_dalton_ppm(mzid.calculatedMassToCharge, mgf['pepmass'])
 
