@@ -137,12 +137,21 @@ def mean(array):
     Returns
     -------
     int
+<<<<<<< HEAD
         median
     """ 
 
     sum = 0.0
     for error in array:
         sum += error
+=======
+        mean
+    """ 
+
+    sum = 0.0
+    for val in array:
+        sum += val
+>>>>>>> github-release
     return sum/len(array)
 
 @jit(nopython=True)
