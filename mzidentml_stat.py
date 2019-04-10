@@ -3,6 +3,7 @@ import csv
 import gc
 import time
 import sys
+
 from xml_handlers import statistics_handler
 from utils import get_memory
 from utils import memory_limit

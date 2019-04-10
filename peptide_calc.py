@@ -5,9 +5,6 @@ import math
 from numba import jit
 from pyteomics import mass
 
-from mgf_file import parse_mgf
-from mzidentml_file import parse_mzident
-
 # constant masses
 mass_water = mass.calculate_mass(formula='H2O')
 mass_hydrogen = mass.calculate_mass(formula='H')

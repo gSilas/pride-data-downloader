@@ -5,7 +5,6 @@ import multiprocessing
 from multiprocessing import Pool
 from mgf_file import parse_mgf
 from xml_handlers import mzid_handler
-from mzidentml_file import parse_mzident
 from peptide_calc import dm_dalton_ppm
 from peptide_calc import SeriesMatcher
 from peptide_labeler import class_label
@@ -145,9 +144,7 @@ def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores):
 
     processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
     with Pool(processes=processes) as p:
-        res = p.map_async(processFunction, archived_files)
-        log.info(res.get())
-
+        p.map(processFunction, archived_files)
        # processFunction(files)
         
 def processFunction(files):
@@ -167,19 +164,24 @@ def processFunction(files):
     mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
 
     if not 'search tolerance minus value' and 'search tolerance plus value' in parameters:
-        log.error('No tolerances found: {}'.format(mzidfp))
+        log.error('No tolerances found! {0}'.format(mzidfp))
+        return
 
     log.info('Processing MGF {}'.format(mgffp))
     mgf, _ = parse_mgf(mgffp)
 
+    not_found_in_mgf = 0
+    not_matching_pepmass = 0
+    not_matching_peaks = 0
+
     for key in mzid:
 
         if key not in mgf:
-            log.error("Not found in mgf: {}".format(key))
+            not_found_in_mgf += 1
             continue
 
         if not (int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge))):
-            log.error("No matching pepmass: {}".format(key))
+            not_matching_pepmass += 1
             continue 
 
         mgf_dict = mgf[key]
@@ -188,10 +190,13 @@ def processFunction(files):
         if row:
             rows.append(row)
         else:
-            log.error("No matching peaks: {}".format(key))
-            
-    log.info('Writing CSV!')
-    writeCSVRows(rows, mgffp+".csv")
+            not_matching_peaks += 1
+
+    if not_found_in_mgf+not_matching_peaks+not_matching_pepmass > 0:
+        log.error("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
+    if len(rows) > 0:
+        log.info('Writing CSV!')
+        writeCSVRows(rows, mgffp+".csv")
 
 if __name__ == "__main__":
     writeCSVPSMSfromArchive("data_pride/archive", 4)

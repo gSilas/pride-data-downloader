@@ -11,8 +11,8 @@ import requests
 import configparser
 
 
-import json_writer
-import csv_writer
+from writers import csv_writer
+from writers import json_writer
 
 from utils import get_memory
 from utils import memory_limit

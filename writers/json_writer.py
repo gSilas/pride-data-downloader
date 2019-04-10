@@ -1,7 +1,7 @@
 import jsonpickle
 import csv
 from mgf_file import parse_mgf
-from mzidentml_file import parse_mzident
+from xml_handlers import mzid_handler
 
 
 def serializePSM(psm):
@@ -62,7 +62,7 @@ def writeJSONPSMSfromArchive(archivePath, jsonPath):
     for files in archived_files:
         mgffp = files[1]
         mzidfp = files[2]
-        mzid = parse_mzident(mzidfp)
+        mzid = mzid_handler.MZIdentMLHandler().parse(mzidfp)
         mgf, _ = parse_mgf(mgffp)
         for key in mzid:
             if key in mgf:
