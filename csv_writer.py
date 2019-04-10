@@ -77,7 +77,12 @@ def generateRow(mzid, mgf, parameters):
     
     mods = [0.0] * len(sequence)
     for i in modifications:
-        mods[i[1]-1] = i[0]
+        index = i[1]-1
+        if not index >= len(mods):
+            mods[index] = i[0]
+        else:
+            log.error("Modification location larger than sequence! len: {0} location: {1}".format(len(mods), index)) 
+            return None
 
     decision, label = class_label(mzid)
     
