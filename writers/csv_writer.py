@@ -159,7 +159,7 @@ def processFunction(files):
     log.info('Processing MZID {}'.format(mzidfp))
     mzid, parameters = mzid_handler.MZIdentMLHandler().parse(mzidfp)
 
-    if not 'search tolerance minus value' and 'search tolerance plus value' in parameters:
+    if not ('search tolerance minus value' in parameters and 'search tolerance plus value' in parameters):
         log.error('No tolerances found! {0}'.format(mzidfp))
     
     else:
