@@ -85,12 +85,8 @@ def generateRow(mzid, mgf, parameters):
 
     decision, label = class_label(mzid)
     
-    if 'search tolerance plus value' in parameters and 'search tolerance minus value' in parameters:
-        match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
-    else:
-        log.error("No tolerance found!")
-        return None
-
+    match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
+    
     if match.calculate_matches():
         dm_dalton, dm_ppm = dm_dalton_ppm(mzid.calculatedMassToCharge, mgf['pepmass'])
 
@@ -165,38 +161,38 @@ def processFunction(files):
 
     if not 'search tolerance minus value' and 'search tolerance plus value' in parameters:
         log.error('No tolerances found! {0}'.format(mzidfp))
-        return
+    
+    else:
+        log.info('Processing MGF {}'.format(mgffp))
+        mgf, _ = parse_mgf(mgffp)
 
-    log.info('Processing MGF {}'.format(mgffp))
-    mgf, _ = parse_mgf(mgffp)
+        not_found_in_mgf = 0
+        not_matching_pepmass = 0
+        not_matching_peaks = 0
 
-    not_found_in_mgf = 0
-    not_matching_pepmass = 0
-    not_matching_peaks = 0
+        for key in mzid:
 
-    for key in mzid:
+            if key not in mgf:
+                not_found_in_mgf += 1
+                continue
 
-        if key not in mgf:
-            not_found_in_mgf += 1
-            continue
+            if not (int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge))):
+                not_matching_pepmass += 1
+                continue 
 
-        if not (int(mgf[key]['pepmass']) == int(float(mzid[key].experimentalMassToCharge))):
-            not_matching_pepmass += 1
-            continue 
+            mgf_dict = mgf[key]
+            mzid_dict = mzid[key]
+            row = generateRow(mzid_dict, mgf_dict, parameters)
+            if row:
+                rows.append(row)
+            else:
+                not_matching_peaks += 1
 
-        mgf_dict = mgf[key]
-        mzid_dict = mzid[key]
-        row = generateRow(mzid_dict, mgf_dict, parameters)
-        if row:
-            rows.append(row)
-        else:
-            not_matching_peaks += 1
-
-    if not_found_in_mgf+not_matching_peaks+not_matching_pepmass > 0:
-        log.error("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
-    if len(rows) > 0:
-        log.info('Writing CSV!')
-        writeCSVRows(rows, mgffp+".csv")
+        if not_found_in_mgf+not_matching_peaks+not_matching_pepmass > 0:
+            log.error("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
+        if len(rows) > 0:
+            log.info('Writing CSV!')
+            writeCSVRows(rows, mgffp+".csv")
 
 if __name__ == "__main__":
     writeCSVPSMSfromArchive("data_pride/archive", 4)
