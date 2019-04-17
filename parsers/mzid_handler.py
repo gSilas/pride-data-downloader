@@ -1,6 +1,5 @@
 import xml.sax
 
-
 class _Result(object):
     """Representation of a PSM"""
     rank = ''

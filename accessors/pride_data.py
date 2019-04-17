@@ -6,16 +6,7 @@ import gzip
 import urllib
 import shutil
 import logging
-import argparse
 import requests
-import configparser
-
-
-from writers import csv_writer
-from writers import json_writer
-
-from utils import get_memory
-from utils import memory_limit
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -343,78 +334,3 @@ def write_archive_file(archivePath, files):
     return archivePath
 
 
-if __name__ == "__main__":
-    log.info("PRIDE download started!")
-
-    parser = argparse.ArgumentParser(
-        description="Download PRIDE projects and create Nocoy trainable csv!")
-    parser.add_argument('-A', '--accessions', nargs='*', default=None,
-                        type=list, help="Specify certain projects by accessions to download.")
-    parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available file tuple!")
-    parser.add_argument('-M', '--memory', type=float, default=0.8, help="Limits the RAM for the program to the given ratio of the available RAM!")
-    parser.add_argument('-N', '--number', metavar='1..10000', type=int, choices=range(
-        1, 10001), default=1, help="Maximal number of projects per page with fitting metadata to include.")
-    parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
-        1, 51), default=1, help="Maximal number of project pages to search.")
-    parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
-    parser.add_argument('-INI', '--ini', action='store_true', help="Disregard command line arguments and parse configuration from config.ini!")
-    parser.add_argument('-I', '--instruments', nargs='*', default=None,
-                        type=str, help="MS/MS instruments used in projects. String used by PRIDE")
-    parser.add_argument('-J', '--json', action='store_true', help="Generates a json file from each available project!")
-    parser.add_argument('-S', '--species', nargs='*', default=None,
-                        type=str, help="Species evaluated in projects. NCBI Taxonomy ID")
-    parser.add_argument('-F', '--folder', nargs='*', default="data_pride",
-                        type=str, help="Folder containing downloaded data relative to the python script!")
-    parser.add_argument('-Sub', '--submission', default="COMPLETE",
-                        type=str, help="SubmissionType for projects.")
-    parser.add_argument('-CO', '--cores', default=4, type=int, help="Maximal number of cores!")
-    args = parser.parse_args()
-    
-    if args.ini:
-        config = configparser.ConfigParser()
-        config.read('config.ini')
-
-        args.accessions = None if config['DEFAULT']['accessions'] == 'None' else config['DEFAULT']['accessions']
-        args.csv = config['DEFAULT'].getboolean('csv')
-        args.memory = config['DEFAULT'].getfloat('memory')
-        args.number = config['DEFAULT'].getint('number')
-        args.pages = config['DEFAULT'].getint('pages')
-        args.single_file = config['DEFAULT'].getboolean('single_file')
-        args.instruments = None if config['DEFAULT']['instruments'] == 'None' else config['DEFAULT']['instruments']
-        args.json = config['DEFAULT'].getboolean('json')
-        args.species = None if config['DEFAULT']['species'] == 'None' else config['DEFAULT']['species']
-        args.folder = config['DEFAULT']['folder']
-        args.submission = None if config['DEFAULT']['submission'] == 'None' else config['DEFAULT']['submission']
-        args.cores = config['DEFAULT'].getint('cores')
-
-        #print(repr(args))
-
-    memory_limit(args.memory)
-    projects, projectDescriptions = get_projectlist(args)
-    log.info("Found {} matching projects!".format(len(projects)))
-    log.debug(projects)
-
-    archivePath = os.path.join(args.folder, 'archive')
-
-    if os.path.exists(archivePath):
-        with open(archivePath) as fp:
-            for line in fp:
-                for project in projects:
-                    if project in line:
-                        projects.remove(project)
-
-    if args.single_file:
-        log.info('Only downloading single file tuples for each available project!')
-
-    if projects:
-        downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
-
-        jsonPath = os.path.join(args.folder, 'psms.json')
-        if downloaded_files:
-            write_archive_file(archivePath, downloaded_files)
-
-    if args.csv:
-        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
-
-    if args.json:
-        json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)

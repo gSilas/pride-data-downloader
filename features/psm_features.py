@@ -5,6 +5,8 @@ import math
 from numba import jit
 from pyteomics import mass
 
+from features.psm_labeler import class_label
+
 # constant masses
 mass_water = mass.calculate_mass(formula='H2O')
 mass_hydrogen = mass.calculate_mass(formula='H')
@@ -247,26 +249,48 @@ def spectrum_statistics(zipped_data):
 
     return highest_intensity, intensity_sum
 
-class SeriesMatcher(object):
+class FeatureList(object):
     """ 
-    Represents matches of series and spectras and additional factors 
+    Represents features of psms 
     """
 
-    def __init__(self, sequence, mods, zipped_spectrum, upperthreshold, lowerthreshold):
-        self.masssequence = transform_sequence_to_masssequence(sequence, mods)
-        self.zipped_data = sorted(zipped_spectrum, key=lambda x: x[0])
+    def __init__(self, mzid, mgf, upperthreshold, lowerthreshold):
+        self.mzid = mzid
+        self.mgf = mgf
         self.upperthreshold = upperthreshold
         self.lowerthreshold = lowerthreshold
+        self.dictionary = dict()
     
-    def calculate_matches(self):
+    def calculate_features(self):
         """ 
-        Calculates matches of series and spectras 
+        Calculates features of psms 
 
         Returns
         -------
         bool
             success or failure
         """
+
+        sequence = self.mzid.sequence
+        modifications = self.mzid.modifications
+
+        zipped_spectrum = zip(self.mgf['mz_list'], self.mgf['intensity_list']) 
+    
+        mods = [0.0] * len(sequence)
+        for i in modifications:
+            index = i[1]-1
+            if not index >= len(mods):
+                mods[index] = i[0]
+            else:
+                #log.error("Modification location larger than sequence! len: {0} location: {1}".format(len(mods), index)) 
+                return None
+
+        decision, label = class_label(self.mzid)
+
+        dm_dalton, dm_ppm = dm_dalton_ppm(self.mzid.calculatedMassToCharge, self.mgf['pepmass'])
+
+        self.masssequence = transform_sequence_to_masssequence(sequence, mods)
+        self.zipped_data = sorted(zipped_spectrum, key=lambda x: x[0])
 
         self.highest_intensity, self.intensity_sum = spectrum_statistics(self.zipped_data)
         #print(self.zipped_data)
@@ -310,6 +334,40 @@ class SeriesMatcher(object):
                 self.bplusplus_ratio = 0
                 self.yplus_ratio = 0
                 self.yplusplus_ratio = 0
+                
+
+            self.dictionary = { "Id": "UNDEFINED", 
+                                "Domain_Id": "UNDEFINED",
+                                "Charge": self.mgf['charge'],
+                                "sumI": sum(self.mgf['intensity_list']), 
+                                "norm_high_peak_intensity": self.highest_intensity/self.intensity_sum, # int highest peak / sum of intensities
+                                "Num_of_Modifications": len(self.mzid.modifications),
+                                "Pep_Len": len(self.mzid.sequence),
+                                "Num_Pl": len(self.mzid.modifications)/len(self.mzid.sequence), # num of mods / peptide length
+                                "mh(group)": float(self.mgf['pepmass']), # m + h mass experimental
+                                "mh(domain)": self.mzid.calculatedMassToCharge, # m + h mass calculated
+                                "uniqueDM": dm_dalton,
+                                "uniqueDMppm": dm_ppm,
+                                "Sum_match_intensities": self.sum_matched_intensities,
+                                "Log_sum_match_intensity": self.log_sum_matched_intensities,
+                                "b+_ratio": self.bplus_ratio,
+                                "b++_ratio": self.bplusplus_ratio, 
+                                "y+_ratio": self.yplus_ratio,
+                                "y++_ratio": self.yplusplus_ratio, 
+                                "b+_count": self.bplus_matches, 
+                                "b++_count": self.bplusplus_matches, 
+                                "y+_count": self.yplus_matches,
+                                "y++_count": self.yplusplus_matches,
+                                "b+_long_count": self.bplus_series,
+                                "b++_long_count": self.bplusplus_series, 
+                                "y+_long_count": self.yplus_series,
+                                "y++_long_count": self.yplusplus_series,
+                                "median_matched_frag_ion_errors": self.median_matching_error,
+                                "mean_matched_frag_ion_errors": self.mean_matching_error,
+                                "iqr_matched_frag_ion_errors": self.iqr_matching_error, 
+                                "Class_Label": label,
+                                "ClassLabel_Decision": decision
+                                }
             return True
         else:
             return False

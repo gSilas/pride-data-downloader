@@ -1,6 +1,5 @@
 import re
 
-
 def generate_mgf_list(input_file):
     """ 
     Generates List from MGF 
@@ -80,20 +79,22 @@ def parse_mgf(input_file):
         if 'BEGIN IONS' in line:
 
             attributes = dict()
-        
-            line = mgf_list[index + tokens['TITLE']]
-            attributes['title'] = re.sub(r'TITLE=', '', line)
+            try:
+                line = mgf_list[index + tokens['TITLE']]
+                attributes['title'] = re.sub(r'TITLE=', '', line)
 
-            line = mgf_list[index + tokens['PEPMASS']]
-            attributes['pepmass'] = float(re.sub(r'PEPMASS=', '', line))
+                line = mgf_list[index + tokens['PEPMASS']]
+                attributes['pepmass'] = float(re.sub(r'PEPMASS=', '', line))
 
-            line = mgf_list[index + tokens['CHARGE']]
-            attributes['charge'] = int(re.match(r'CHARGE=(\d)\+', line)[1] if re.match(r'CHARGE=(\d)\+', line) else 0)
-            
-            spectrum_index = index + tokens['LISTS']
-            line = mgf_list[spectrum_index]
-            mz_lst = []
-            intensity_lst = []
+                line = mgf_list[index + tokens['CHARGE']]
+                attributes['charge'] = int(re.match(r'CHARGE=(\d)\+', line)[1] if re.match(r'CHARGE=(\d)\+', line) else 0)
+                
+                spectrum_index = index + tokens['LISTS']
+                line = mgf_list[spectrum_index]
+                mz_lst = []
+                intensity_lst = []
+            except KeyError:
+                return dict(), list()
 
             while not 'END IONS' in line:
                 line_split = line.split('\t')

@@ -1,7 +1,7 @@
 import jsonpickle
 import csv
-from mgf_file import parse_mgf
-from xml_handlers import mzid_handler
+from parsers.mgf_file import parse_mgf
+from parsers import mzid_handler
 
 
 def serializePSM(psm):

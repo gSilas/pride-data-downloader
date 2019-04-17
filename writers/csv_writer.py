@@ -2,12 +2,11 @@ import sys
 import logging
 import csv
 import multiprocessing
+from functools import partial
 from multiprocessing import Pool
-from mgf_file import parse_mgf
-from xml_handlers import mzid_handler
-from peptide_calc import dm_dalton_ppm
-from peptide_calc import SeriesMatcher
-from peptide_labeler import class_label
+from parsers.mgf_file import parse_mgf
+from parsers import mzid_handler
+from features.psm_features import FeatureList
 import math
 
 log = logging.getLogger(__name__)
@@ -25,14 +24,7 @@ handler.setFormatter(logging.Formatter(
 handler.setLevel(logging.INFO)
 log.addHandler(handler)
 
-HEADER = ["Id", "Domain_Id", "Charge", "sumI", "norm_high_peak_intensity", "Num_of_Modifications", "Pep_Len", "Num_Pl", 
-"mh(group)", "mh(domain)", "uniqueDM", "uniqueDMppm", "Sum_match_intensities", "Log_sum_match_intensity", "b+_ratio", 
-"b++_ratio", "y+_ratio", "y++_ratio", "b+_count", "b++_count", "y+_count", "y++_count", "b+_long_count", 
-# "b+_intensities",  "b++_intensities",  "y+_intensities",  "y++_intensities",
-"b++_long_count", "y+_long_count", "y++_long_count", "median_matched_frag_ion_errors", "mean_matched_frag_ion_errors", 
-"iqr_matched_frag_ion_errors", "Class_Label", "ClassLabel_Decision", "Params"]
-
-def writeCSVRows(rows, csvPath):
+def writeCSVRows(rows, csvPath, features):
     """ 
     Writes multiple rows to CSV 
     
@@ -45,13 +37,28 @@ def writeCSVRows(rows, csvPath):
     
     """
     with open(csvPath, 'a+', newline='') as csvfile:
-        csvwriter = csv.DictWriter(csvfile, delimiter=';', fieldnames=HEADER)
-        csvwriter.writeheader()
+        csvwriter = csv.DictWriter(csvfile, delimiter=',', fieldnames=features)
 
         for row in rows:
             csvwriter.writerow(row)
 
-def generateRow(mzid, mgf, parameters):
+def writeCSVHeader(csvPath, features):
+    """ 
+    Writes multiple rows to CSV 
+    
+    Parameters
+    ----------
+    rows: list
+        rows for csv
+    csvPath: str
+        path to csv
+    
+    """
+    with open(csvPath, 'a+', newline='') as csvfile:
+        csvwriter = csv.DictWriter(csvfile, delimiter=',', fieldnames=features)
+        csvwriter.writeheader()
+
+def generateRow(mzid, mgf, parameters, feature_list):
     """ 
     Generates an individual row for csv from PSM 
     
@@ -70,64 +77,20 @@ def generateRow(mzid, mgf, parameters):
         representing a csv PSM row
 
     """
-    sequence = mzid.sequence
-    modifications = mzid.modifications
-    zipped_spectrum = zip(mgf['mz_list'], mgf['intensity_list']) 
     
-    mods = [0.0] * len(sequence)
-    for i in modifications:
-        index = i[1]-1
-        if not index >= len(mods):
-            mods[index] = i[0]
-        else:
-            log.error("Modification location larger than sequence! len: {0} location: {1}".format(len(mods), index)) 
-            return None
+    features = FeatureList(mzid, mgf, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
+    
+    if features.calculate_features():
 
-    decision, label = class_label(mzid)
-    
-    match = SeriesMatcher(sequence, mods, zipped_spectrum, parameters['search tolerance plus value'], parameters['search tolerance minus value'])
-    
-    if match.calculate_matches():
-        dm_dalton, dm_ppm = dm_dalton_ppm(mzid.calculatedMassToCharge, mgf['pepmass'])
+        row = dict()
+        for feature in feature_list:
+            row[feature] = features.dictionary[feature]
 
-        row = {"Id": "UNDEFINED", 
-        "Domain_Id": "UNDEFINED",
-        "Charge": mgf['charge'],
-        "sumI": sum(mgf['intensity_list']), 
-        "norm_high_peak_intensity": match.highest_intensity/match.intensity_sum, # int highest peak / sum of intensities
-        "Num_of_Modifications": len(mzid.modifications),
-        "Pep_Len": len(mzid.sequence),
-        "Num_Pl": len(mzid.modifications)/len(mzid.sequence), # num of mods / peptide length
-        "mh(group)": float(mgf['pepmass']), # m + h mass experimental
-        "mh(domain)": mzid.calculatedMassToCharge, # m + h mass calculated
-        "uniqueDM": dm_dalton,
-        "uniqueDMppm": dm_ppm,
-        "Sum_match_intensities": match.sum_matched_intensities,
-        "Log_sum_match_intensity": match.log_sum_matched_intensities,
-        "b+_ratio": match.bplus_ratio,
-        "b++_ratio": match.bplusplus_ratio, 
-        "y+_ratio": match.yplus_ratio,
-        "y++_ratio": match.yplusplus_ratio, 
-        "b+_count": match.bplus_matches, 
-        "b++_count": match.bplusplus_matches, 
-        "y+_count": match.yplus_matches,
-        "y++_count": match.yplusplus_matches,
-        "b+_long_count": match.bplus_series,
-        "b++_long_count": match.bplusplus_series, 
-        "y+_long_count": match.yplus_series,
-        "y++_long_count": match.yplusplus_series,
-        "median_matched_frag_ion_errors": match.median_matching_error,
-        "mean_matched_frag_ion_errors": match.mean_matching_error,
-        "iqr_matched_frag_ion_errors": match.iqr_matching_error, 
-        "Class_Label": label,
-        "ClassLabel_Decision": decision#,
-        #"Params": mzid['meta_parameters']
-        }
         return row
     else:
         return None
 
-def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores):
+def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores, features = []):
     """ Writes PSMs to CSV from Archive """
     archived_files = []
     with open(archivePath, 'r') as fp:
@@ -140,10 +103,22 @@ def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores):
 
     processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
     with Pool(processes=processes) as p:
-        p.map(processFunction, archived_files)
-       # processFunction(files)
-        
-def processFunction(files):
+        results = p.map(partial(processFunction, features=features), archived_files)
+
+    log.info('Writing CSV!')
+    projects = []
+    for res in results:
+        #print(res)
+        project = res[0]
+        rows = res[1]
+        if rows:
+            if project not in projects:
+                writeCSVHeader('/'.join(archivePath.split('/')[:-1])+"/"+str(project)+"/"+str(project)+".csv", features)
+                projects.append(project)
+
+            writeCSVRows(rows, '/'.join(archivePath.split('/')[:-1])+"/"+str(project)+"/"+str(project)+".csv", features)
+      
+def processFunction(files, features):
     """ 
     Data-parallel function generating CSV 
     
@@ -161,6 +136,7 @@ def processFunction(files):
 
     if not ('search tolerance minus value' in parameters and 'search tolerance plus value' in parameters):
         log.error('No tolerances found! {0}'.format(mzidfp))
+        return files[0], None
     
     else:
         log.info('Processing MGF {}'.format(mgffp))
@@ -182,7 +158,7 @@ def processFunction(files):
 
             mgf_dict = mgf[key]
             mzid_dict = mzid[key]
-            row = generateRow(mzid_dict, mgf_dict, parameters)
+            row = generateRow(mzid_dict, mgf_dict, parameters, features)
             if row:
                 rows.append(row)
             else:
@@ -191,8 +167,10 @@ def processFunction(files):
         if not_found_in_mgf+not_matching_peaks+not_matching_pepmass > 0:
             log.error("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
         if len(rows) > 0:
-            log.info('Writing CSV!')
-            writeCSVRows(rows, mgffp+".csv")
+            return files[0], rows
+        else:
+            return files[0], None
+
 
 if __name__ == "__main__":
     writeCSVPSMSfromArchive("data_pride/archive", 4)
