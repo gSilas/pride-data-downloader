@@ -42,7 +42,7 @@ if __name__ == "__main__":
     session = cluster.connect(os.environ['CASSANDRA_KEYSPACE'])
 
     while(True):
-        rows = session.execute('SELECT parameters, status FROM queue WHERE status=0')
+        rows = session.execute('SELECT parameters FROM queue WHERE status=0')
         for row in rows:
             args = Namespace(**json.loads(row.parameters))
             print(args)

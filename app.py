@@ -61,7 +61,7 @@ if __name__ == "__main__":
         
     if args.ini:
         argparse_dict = vars(args)
-        with open('config.json', 'r') as configfile:
+        with open('config/config.json', 'r') as configfile:
             argparse_dict.update(json.load(configfile))
 
     print(args)

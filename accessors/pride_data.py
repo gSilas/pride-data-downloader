@@ -67,7 +67,7 @@ def get_projectlist(args):
     projectDescriptions = dict()
 
     modifications = dict()
-    with open('modifications.csv', 'r') as fp:
+    with open('config/modifications.csv', 'r') as fp:
         modification_csv = csv.reader(fp, delimiter=';')
         for row in modification_csv:
             modifications[row[0]] = True if not '1' in row[1] else False
