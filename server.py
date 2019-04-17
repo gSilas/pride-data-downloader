@@ -15,7 +15,7 @@ def get_root():
 
 @app.route('/api/v1.0/status', methods=['GET'])
 def get_status():
-    rows = session.execute('SELECT uuid, status FROM users')
+    rows = session.execute('SELECT uuid, status FROM queue')
     statusDict = dict()
     for status_row in rows:
         statusDict[status_row.uuid] = status_row.status
