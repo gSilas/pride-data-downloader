@@ -15,10 +15,10 @@ def get_root():
 
 @app.route('/api/v1.0/status', methods=['GET'])
 def get_status():
-    rows = session.execute('SELECT uuid, status FROM queue')
+    rows = session.execute('SELECT job_id, status FROM queue')
     statusDict = dict()
     for status_row in rows:
-        statusDict[status_row.uuid] = status_row.status
+        statusDict[str(status_row.job_id)] = status_row.status
     return jsonify(statusDict)
 
 @app.route('/api/v1.0/start', methods=['POST'])
@@ -29,10 +29,10 @@ def post_start():
     if input_json:
         session.execute(
         """
-        INSERT INTO queue (UUID, parameters, hdfs, status)
-        VALUES (%s, %s, %s, %s)
+        INSERT INTO queue (job_id, parameters, hdfs_path, pride_id, status)
+        VALUES (%s, %s, %s, %s, %s)
         """,
-        (uuid.uuid1(), input_json, "", 0)
+        (uuid.uuid1(), str(input_json), "", "", 0)
         )
         dictToReturn = {'status': 'ok'}
     else:
@@ -40,4 +40,4 @@ def post_start():
     return jsonify(dictToReturn)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)

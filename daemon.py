@@ -4,6 +4,7 @@ import sys
 import os
 import json
 
+from subprocess import Popen, PIPE
 from argparse import Namespace
 
 from writers import csv_writer
@@ -42,41 +43,56 @@ if __name__ == "__main__":
     session = cluster.connect(os.environ['CASSANDRA_KEYSPACE'])
 
     while(True):
-        rows = session.execute('SELECT parameters FROM queue WHERE status=0')
+        rows = session.execute('SELECT * FROM queue WHERE status=0 ALLOW FILTERING;')
         for row in rows:
             args = Namespace(**json.loads(row.parameters))
-            print(args)
+            csvs = None
+            
+            try:
+                memory_limit(args.memory)
+                projects, projectDescriptions = get_projectlist(args)
+                log.info("Found {} matching projects!".format(len(projects)))
+                log.debug(projects)
 
-            sys.exit()
+                archivePath = os.path.join(args.folder, 'archive')
 
-            memory_limit(args.memory)
-            projects, projectDescriptions = get_projectlist(args)
-            log.info("Found {} matching projects!".format(len(projects)))
-            log.debug(projects)
+                if os.path.exists(archivePath):
+                    with open(archivePath) as fp:
+                        for line in fp:
+                            for project in projects:
+                                if project in line:
+                                    projects.remove(project)
 
-            archivePath = os.path.join(args.folder, 'archive')
+                if args.single_file:
+                    log.info('Only downloading single file tuples for each available project!')
 
-            if os.path.exists(archivePath):
-                with open(archivePath) as fp:
-                    for line in fp:
-                        for project in projects:
-                            if project in line:
-                                projects.remove(project)
+                if projects:
+                    downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
 
-            if args.single_file:
-                log.info('Only downloading single file tuples for each available project!')
+                    jsonPath = os.path.join(args.folder, 'psms.json')
+                    if downloaded_files:
+                        write_archive_file(archivePath, downloaded_files)
 
-            if projects:
-                downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
+                if args.csv:
+                    csvs = csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
 
-                jsonPath = os.path.join(args.folder, 'psms.json')
-                if downloaded_files:
-                    write_archive_file(archivePath, downloaded_files)
+                if args.json:
+                    json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+            
+            except Exception as err:
+                log.error("Exception {}".format(err.message)) 
 
-            if args.csv:
-                csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
+            if csvs:
+                hdfs_parent = os.path.join(os.sep, 'data_pride', row.uuid)
+                for csv in csvs:
+                    hdfs_path = os.path.join(hdfs_parent, csv)
 
-            if args.json:
-                json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
-        
+                    # put csv into hdfs
+                    put = Popen(["hadoop", "fs", "-put", csv, hdfs_path], stdin=PIPE, bufsize=-1)
+                    put.communicate()
+
+                session.execute("UPDATE queue SET status = 1, hdfs_path = %s, pride_id = %s WHERE job_id=%s", (hdfs_parent, projects, row.uuid))
+            else:
+                session.execute("UPDATE queue SET status = -1 WHERE job_id=%s", (row.uuid))
+                    
         sleep(360)

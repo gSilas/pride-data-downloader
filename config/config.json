@@ -1,9 +1,9 @@
 {
     "accessions": null, 
-    "csv": false, 
+    "csv": true, 
     "memory": 0.8, 
-    "number": 20, 
-    "pages": 20, 
+    "number": 80, 
+    "pages": 1, 
     "single_file": false, 
     "ini": true, 
     "instruments": null, 
