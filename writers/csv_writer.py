@@ -118,7 +118,8 @@ def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores, features = []):
 
         log.info('Writing CSV! {}'.format(csv_path))
         for res in results:
-            writeCSVRows(res, csv_path, features)
+            if res:
+                writeCSVRows(res, csv_path, features)
     
     return csv_files
       

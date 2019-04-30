@@ -19,7 +19,6 @@ from accessors.pride_data import get_filelist, get_projectlist, write_archive_fi
 
 from cassandra.cluster import Cluster
 import uuid
-import os
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -85,7 +84,7 @@ if __name__ == "__main__":
             if csvs:
                 hdfs_parent = os.path.join(os.sep, 'data_pride', row.uuid)
                 for csv in csvs:
-                    hdfs_path = os.path.join(hdfs_parent, csv)
+                    hdfs_path = os.path.join('hdfs://hdfs', hdfs_parent, csv)
 
                     # put csv into hdfs
                     put = Popen(["hadoop", "fs", "-put", csv, hdfs_path], stdin=PIPE, bufsize=-1)

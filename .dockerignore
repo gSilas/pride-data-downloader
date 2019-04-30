@@ -1,0 +1,7 @@
+data_pride
+.vscode
+__pycache__
+debug.log
+.git
+.gitignore
+docs
