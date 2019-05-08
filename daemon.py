@@ -2,8 +2,7 @@ import logging
 import argparse
 import sys
 import os
-import json
-
+import ast
 from subprocess import Popen, PIPE
 from argparse import Namespace
 
@@ -13,10 +12,10 @@ from writers import json_writer
 from utils import get_memory
 from utils import memory_limit
 
-from time import sleep
-
+import time
 from accessors.pride_data import get_filelist, get_projectlist, write_archive_file, download_projectlist
 
+from hdfs import InsecureClient
 from cassandra.cluster import Cluster
 import uuid
 
@@ -38,16 +37,21 @@ log.addHandler(handler)
 if __name__ == "__main__":
     log.info("PRIDE download daemon started!")
 
-    cluster = Cluster([os.environ['CASSANDRA_HOST']])
+    cluster = Cluster(os.environ['CASSANDRA_HOST'].split())
     session = cluster.connect(os.environ['CASSANDRA_KEYSPACE'])
 
     while(True):
-        rows = session.execute('SELECT * FROM queue WHERE status=0 ALLOW FILTERING;')
+        log.info('Executing daemon loop!')
+        csvs = None
+        rows = session.execute('SELECT * FROM CSV_GENERATOR_JOBS WHERE STATUS=0 ALLOW FILTERING;')
         for row in rows:
-            args = Namespace(**json.loads(row.parameters))
-            csvs = None
-            
             try:
+                log.info("Current job: {}".format(row.csv_generator_job_id))
+                json_data = ast.literal_eval(str(row.parameter))
+                #print(json_data)
+                args = Namespace(**json_data)
+                csvs = None
+                
                 memory_limit(args.memory)
                 projects, projectDescriptions = get_projectlist(args)
                 log.info("Found {} matching projects!".format(len(projects)))
@@ -79,19 +83,24 @@ if __name__ == "__main__":
                     json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
             
             except Exception as err:
-                log.error("Exception {}".format(err.message)) 
+                log.error("Exception {}".format(err)) 
+                error = err
 
             if csvs:
-                hdfs_parent = os.path.join(os.sep, 'data_pride', row.uuid)
+                hdfs_parent = os.path.join(os.sep, os.environ['HDFS_USER'], str(row.csv_generator_job_id))
                 for csv in csvs:
-                    hdfs_path = os.path.join('hdfs://hdfs', hdfs_parent, csv)
+                    hdfs_path = os.path.join(hdfs_parent, csv.split(os.sep)[-1])
 
                     # put csv into hdfs
-                    put = Popen(["hadoop", "fs", "-put", csv, hdfs_path], stdin=PIPE, bufsize=-1)
-                    put.communicate()
+                    #put = Popen(["hadoop", "fs", "-put", csv, hdfs_path], stdin=PIPE, bufsize=-1)
+                    #put.communicate()
 
-                session.execute("UPDATE queue SET status = 1, hdfs_path = %s, pride_id = %s WHERE job_id=%s", (hdfs_parent, projects, row.uuid))
+                    client = InsecureClient('{}:{}'.format(os.environ['HDFS_HOST'], os.environ['HDFS_PORT']), user=os.environ['HDFS_USER'])
+                    client.upload(hdfs_path, csv)
+
+                session.execute("UPDATE CSV_GENERATOR_JOBS SET STATUS = 1, CSV_HDFS_PATH={}, PRIDE_ID={}, JOB_RESULT_MESSAGE=\'{}\' WHERE CSV_GENERATOR_JOB_ID={} IF EXISTS;".format(hdfs_parent, projects, "success", str(row.csv_generator_job_id)))
             else:
-                session.execute("UPDATE queue SET status = -1 WHERE job_id=%s", (row.uuid))
+                session.execute("UPDATE CSV_GENERATOR_JOBS SET STATUS = -1, JOB_RESULT_MESSAGE=\'{}\', WHERE CSV_GENERATOR_JOB_ID={} IF EXISTS;".format(str(error), str(row.csv_generator_job_id)))
                     
-        sleep(360)
+        log.info('Sleeping for {} seconds!'.format(os.environ['TIMEOUT']))
+        time.sleep(int(os.environ['TIMEOUT']))
