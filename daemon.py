@@ -3,6 +3,7 @@ import argparse
 import sys
 import os
 import ast
+import shutil
 from subprocess import Popen, PIPE
 from argparse import Namespace
 
@@ -43,6 +44,7 @@ if __name__ == "__main__":
     while(True):
         log.info('Executing daemon loop!')
         csvs = None
+        error = None
         rows = session.execute('SELECT * FROM CSV_GENERATOR_JOBS WHERE STATUS=0 ALLOW FILTERING;')
         for row in rows:
             try:
@@ -51,20 +53,21 @@ if __name__ == "__main__":
                 #print(json_data)
                 args = Namespace(**json_data)
                 csvs = None
-                
+
                 memory_limit(args.memory)
                 projects, projectDescriptions = get_projectlist(args)
                 log.info("Found {} matching projects!".format(len(projects)))
                 log.debug(projects)
 
-                archivePath = os.path.join(args.folder, 'archive')
+                archivePath = os.path.join("data_pride", 'archive')
 
                 if os.path.exists(archivePath):
-                    with open(archivePath) as fp:
-                        for line in fp:
-                            for project in projects:
-                                if project in line:
-                                    projects.remove(project)
+                    log.info('Archive exists! Deleting archived data!')
+                    os.remove(archivePath)
+
+                if not os.path.exists(args.folder):
+                    log.info('Folder does not exists! Creating {}!'.format(args.folder))
+                    os.makedirs(args.folder)
 
                 if args.single_file:
                     log.info('Only downloading single file tuples for each available project!')
@@ -73,20 +76,22 @@ if __name__ == "__main__":
                     downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
 
                     jsonPath = os.path.join(args.folder, 'psms.json')
+                    
                     if downloaded_files:
                         write_archive_file(archivePath, downloaded_files)
 
-                if args.csv:
-                    csvs = csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
+                        if args.csv:
+                            csvs = csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
 
-                if args.json:
-                    json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+                        if args.json:
+                            json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
             
             except Exception as err:
                 log.error("Exception {}".format(err)) 
                 error = err
 
             if csvs:
+                log.info("CSVs generated during execution!")
                 hdfs_parent = os.path.join(os.sep, os.environ['HDFS_USER'], str(row.csv_generator_job_id))
                 for csv in csvs:
                     hdfs_path = os.path.join(hdfs_parent, csv.split(os.sep)[-1])
@@ -100,7 +105,8 @@ if __name__ == "__main__":
 
                 session.execute("UPDATE CSV_GENERATOR_JOBS SET STATUS = 1, CSV_HDFS_PATH={}, PRIDE_ID={}, JOB_RESULT_MESSAGE=\'{}\' WHERE CSV_GENERATOR_JOB_ID={} IF EXISTS;".format(hdfs_parent, projects, "success", str(row.csv_generator_job_id)))
             else:
-                session.execute("UPDATE CSV_GENERATOR_JOBS SET STATUS = -1, JOB_RESULT_MESSAGE=\'{}\', WHERE CSV_GENERATOR_JOB_ID={} IF EXISTS;".format(str(error), str(row.csv_generator_job_id)))
-                    
+                log.warning("No CSVs generated during execution!")
+                session.execute("UPDATE CSV_GENERATOR_JOBS SET STATUS = -1, JOB_RESULT_MESSAGE=\'{}\' WHERE CSV_GENERATOR_JOB_ID={} IF EXISTS;".format(str(error), str(row.csv_generator_job_id)))
+
         log.info('Sleeping for {} seconds!'.format(os.environ['TIMEOUT']))
         time.sleep(int(os.environ['TIMEOUT']))

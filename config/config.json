@@ -1,10 +1,10 @@
 {
-    "accessions": null, 
+    "accessions": ["PXD007612"], 
     "csv": true, 
     "memory": 0.9, 
     "number": 20, 
     "pages": 1, 
-    "single_file": false, 
+    "single_file": true, 
     "ini": true, 
     "instruments": null, 
     "json": false, 

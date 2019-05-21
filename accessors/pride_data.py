@@ -41,13 +41,14 @@ def get_projectlist(args):
     """
 
     project_list = []
+    urls = []
 
     if args.accessions:
         for acc in args.accessions:
             url = "https://www.ebi.ac.uk:443/pride/ws/archive/project/" + ''.join(acc)
+            urls.append(url)
 
     else:
-        urls = [] 
         for page in range(0, args.pages):
             url = 'https://www.ebi.ac.uk:443/pride/ws/archive/project/list/?show=' + \
                 str(args.number) + '&page=' + str(page) + '&order=desc'
@@ -77,8 +78,10 @@ def get_projectlist(args):
 
         responseList = requests.get(url)
         
-        if responseList:
+        if responseList and not args.accessions:
             project_list = responseList.json()['list']
+        elif args.accessions:
+            project_list = [responseList.json()]
         else:
             log.error("No PRIDE server response received!")
             continue
