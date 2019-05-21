@@ -139,6 +139,7 @@ def get_filelist(project):
     url = 'https://www.ebi.ac.uk/pride/ws/archive/file/list/project/' + project
     # Request url and convert response to json
     try:
+        log.info("Requesting filelist at {} !".format(url))
         project_files = requests.get(url).json()['list']
     except (json.decoder.JSONDecodeError, KeyError) as err:
         log.error(err)

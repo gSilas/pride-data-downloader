@@ -91,11 +91,10 @@ def parse_mgf(input_file):
                 
                 spectrum_index = index + tokens['LISTS']
                 line = mgf_list[spectrum_index]
-                mz_lst = []
-                intensity_lst = []
             except KeyError:
                 return dict(), list()
-
+            mz_lst = []
+            intensity_lst = []
             while not 'END IONS' in line:
                 line_split = line.split('\t')
                 mz_lst.append(float(line_split[0].strip()))

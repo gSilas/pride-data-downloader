@@ -54,7 +54,7 @@ if __name__ == "__main__":
                         type=str, help="Species evaluated in projects. NCBI Taxonomy ID")
     parser.add_argument('-F', '--folder', nargs='*', default="data_pride",
                         type=str, help="Folder containing downloaded data relative to the python script!")
-    parser.add_argument('-Sub', '--submission', default="COMPLETE",
+    parser.add_argument('-SUB', '--submission', default="COMPLETE",
                         type=str, help="SubmissionType for projects.")
     parser.add_argument('-CO', '--cores', default=4, type=int, help="Maximal number of cores!")
     args = parser.parse_args()
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             write_archive_file(archivePath, downloaded_files)
 
     if args.csv:
-        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
+        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features)
 
     if args.json:
         json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)

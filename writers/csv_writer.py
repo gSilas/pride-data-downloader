@@ -97,11 +97,11 @@ def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores, features = []):
     with open(archivePath, 'r') as fp:
         csvreader = csv.reader(fp, delimiter=';')
         for row in csvreader:
-            if row[:1][0] in archived_files:
-                archived_files[row[:1][0]].append(row[1:])
+            if row[0] in archived_files:
+                archived_files[row[0]].append(row[1:])
             else:
-                archived_files[row[:1][0]] = list()
-                archived_files[row[:1][0]].append(row[1:])
+                archived_files[row[0]] = list()
+                archived_files[row[0]].append(row[1:])
 
     csv_files = []
     log.info("Archived Files:")
@@ -163,6 +163,7 @@ def processFunction(files, features):
 
             mgf_dict = mgf[key]
             mzid_dict = mzid[key]
+            #log.info("Calculating features for {}".format(key))
             row = generateRow(mzid_dict, mgf_dict, parameters, features)
             if row:
                 rows.append(row)
@@ -170,7 +171,7 @@ def processFunction(files, features):
                 not_matching_peaks += 1
 
         if not_found_in_mgf+not_matching_peaks+not_matching_pepmass > 0:
-            log.error("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
+            log.warning("MZID: {0} Not found in MGF: {1} No matching peaks: {2} No matching pepmass: {3}".format(mzidfp, not_found_in_mgf, not_matching_peaks, not_matching_pepmass))
         if len(rows) > 0:
             return rows
         else:

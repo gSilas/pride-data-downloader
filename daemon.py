@@ -73,6 +73,7 @@ if __name__ == "__main__":
                     log.info('Only downloading single file tuples for each available project!')
 
                 if projects:
+                    log.info("Downloading files {}".format(projects))
                     downloaded_files = download_projectlist(projects, projectDescriptions, args.folder, args.single_file)
 
                     jsonPath = os.path.join(args.folder, 'psms.json')
@@ -81,10 +82,13 @@ if __name__ == "__main__":
                         write_archive_file(archivePath, downloaded_files)
 
                         if args.csv:
-                            csvs = csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores)
+                            csvs = csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features)
 
                         if args.json:
                             json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
+                    
+                    else:
+                        log.warning("No files downloaded!")
             
             except Exception as err:
                 log.error("Exception {}".format(err)) 

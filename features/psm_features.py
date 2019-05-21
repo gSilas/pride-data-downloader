@@ -1,11 +1,28 @@
 import numpy
 import numba
 import math
+import logging
+import sys
 
 from numba import jit
 from pyteomics import mass
 
 from features.psm_labeler import class_label
+
+log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
+
+handler = logging.FileHandler('debug.log', mode='w')
+handler.setFormatter(logging.Formatter(
+    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+handler.setLevel(logging.DEBUG)
+log.addHandler(handler)
+
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(logging.Formatter(
+    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+handler.setLevel(logging.INFO)
+log.addHandler(handler)
 
 # constant masses
 mass_water = mass.calculate_mass(formula='H2O')
@@ -282,7 +299,7 @@ class FeatureList(object):
             if not index >= len(mods):
                 mods[index] = i[0]
             else:
-                #log.error("Modification location larger than sequence! len: {0} location: {1}".format(len(mods), index)) 
+                log.error("Modification location larger than sequence! len: {0} location: {1}".format(len(mods), index)) 
                 return None
 
         decision, label = class_label(self.mzid)
@@ -320,10 +337,12 @@ class FeatureList(object):
             self.yplusplus_matches = len(self.yplusplus_peaks)
             self.matches = len(self.bplus_peaks) + len(self.bplusplus_peaks) + len(self.yplus_peaks) + len(self.yplusplus_peaks)
             self.sum_matched_intensities = sum(self.bplus_int) + sum(self.bplusplus_int) + sum(self.yplus_int) + sum(self.yplusplus_int)
+            
             if self.sum_matched_intensities > 0:
                 self.log_sum_matched_intensities = math.log10(self.sum_matched_intensities)
             else:
                 self.log_sum_matched_intensities = 0
+            
             if self.matches > 0:
                 self.bplus_ratio = self.bplus_matches/self.matches
                 self.bplusplus_ratio = self.bplusplus_matches/self.matches
@@ -370,6 +389,7 @@ class FeatureList(object):
                                 }
             return True
         else:
+            #log.warning("No matchings calculated!")
             return False
 
 
