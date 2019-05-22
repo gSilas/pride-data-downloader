@@ -353,9 +353,13 @@ class FeatureList(object):
                 self.bplusplus_ratio = 0
                 self.yplus_ratio = 0
                 self.yplusplus_ratio = 0
-                
 
-            self.dictionary = { "Id": "UNDEFINED", 
+            mascot_score = 0
+            for param in self.mzid.parameters:
+                if 'Mascot:score' == param[0]:
+                    mascot_score = param[1]
+
+            self.dictionary = { "Hyperscore": mascot_score, 
                                 "Domain_Id": "UNDEFINED",
                                 "Charge": self.mgf['charge'],
                                 "sumI": sum(self.mgf['intensity_list']), 

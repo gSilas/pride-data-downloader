@@ -35,18 +35,18 @@ if __name__ == "__main__":
     parser.add_argument('-A', '--accessions', nargs='*', default=None,
                         type=list, help="Specify certain projects by accessions to download.")
     parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available file tuple!")
-    parser.add_argument('-FE', '--features', default=["Charge", "sumI", "norm_high_peak_intensity", "Num_of_Modifications", "Pep_Len", "Num_Pl", 
+    parser.add_argument('-FE', '--features', default=["Hyperscore", "Charge", "sumI", "norm_high_peak_intensity", "Num_of_Modifications", "Pep_Len", "Num_Pl", 
         "mh(group)", "mh(domain)", "uniqueDM", "uniqueDMppm", "Sum_match_intensities", "Log_sum_match_intensity", "b+_ratio", 
         "b++_ratio", "y+_ratio", "y++_ratio", "b+_count", "b++_count", "y+_count", "y++_count", "b+_long_count", 
         "b++_long_count", "y+_long_count", "y++_long_count", "median_matched_frag_ion_errors", "mean_matched_frag_ion_errors", 
         "iqr_matched_frag_ion_errors", "Class_Label"], type=list, help="Features to be extracted from the acquired data and stored to CSV!")
-    parser.add_argument('-M', '--memory', type=float, default=0.8, help="Limits the RAM for the program to the given ratio of the available RAM!")
+    parser.add_argument('-M', '--memory', type=float, default=1.0, help="Limits the RAM for the program to the given ratio of the available RAM!")
     parser.add_argument('-N', '--number', metavar='1..10000', type=int, choices=range(
         1, 10001), default=1, help="Maximal number of projects per page with fitting metadata to include.")
     parser.add_argument('-P', '--pages', metavar='1..50', type=int, choices=range(
         1, 51), default=1, help="Maximal number of project pages to search.")
     parser.add_argument('-O', '--single_file', action='store_true', help="Only download a single file tuple for each available project!")
-    parser.add_argument('-INI', '--ini', action='store_true', help="Disregard command line arguments and parse configuration from config.json!")
+    parser.add_argument('-INI', '--ini',  nargs='*',  default=None, help="Disregard command line arguments and parse configuration from a given config file!")
     parser.add_argument('-I', '--instruments', nargs='*', default=None,
                         type=str, help="MS/MS instruments used in projects. String used by PRIDE")
     parser.add_argument('-J', '--json', action='store_true', help="Generates a json file from each available project!")
@@ -61,12 +61,11 @@ if __name__ == "__main__":
         
     if args.ini:
         argparse_dict = vars(args)
-        with open('config/config.json', 'r') as configfile:
+        log.info("Parsing configuration from {}".format(args.ini[0]))
+        with open(args.ini[0], 'r') as configfile:
             argparse_dict.update(json.load(configfile))
 
     print(args)
-
-   # sys.exit()
 
     memory_limit(args.memory)
     projects, projectDescriptions = get_projectlist(args)

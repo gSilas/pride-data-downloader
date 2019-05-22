@@ -27,17 +27,17 @@ def class_label(mzid):
 
         elif 'Scaffold:Peptide Probability' == param[0]:
             if float(param[1]) >= 0.99:
-                return 'scaffold', 1
+                return 'scaffold', 'true'
             elif float(param[1]) < 0.99:
-                return 'scaffold', 0
+                return 'scaffold', 'false'
 
     if mascot_score != -999 and mascot_threshold != -999:
         if mascot_score >= mascot_threshold:
-            return 'mascot', 1
+            return 'mascot', 'true'
         elif mascot_score < mascot_threshold:
-            return 'mascot', 0
+            return 'mascot', 'false'
 
     if int(mzid.rank) == 1:
-        return 'rank', 1
+        return 'rank', 'true'
     elif int(mzid.rank) > 1:
-        return 'rank', 0
+        return 'rank', 'false'
