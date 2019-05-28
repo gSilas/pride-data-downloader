@@ -14,6 +14,7 @@ from utils import get_memory
 from utils import memory_limit
 
 import time
+import datetime
 from accessors.pride_data import get_filelist, get_projectlist, write_archive_file, download_projectlist
 
 from hdfs import InsecureClient
@@ -23,7 +24,7 @@ import uuid
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler('debug.log', mode='w')
+handler = logging.FileHandler(log_filename, mode='w')
 handler.setFormatter(logging.Formatter(
     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 handler.setLevel(logging.DEBUG)

@@ -3,6 +3,8 @@ import argparse
 import sys
 import os
 import json
+import time
+import datetime
 
 from writers import csv_writer
 from writers import json_writer
@@ -12,10 +14,11 @@ from utils import memory_limit
 
 from accessors.pride_data import get_filelist, get_projectlist, write_archive_file, download_projectlist
 
-log = logging.getLogger(__name__)
+log = logging.getLogger('PrideData')
 log.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler('debug.log', mode='w')
+log_filename = 'logs/logging-{}.log'.format(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
+handler = logging.FileHandler(log_filename, mode='w')
 handler.setFormatter(logging.Formatter(
     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 handler.setLevel(logging.DEBUG)
@@ -35,6 +38,8 @@ if __name__ == "__main__":
     parser.add_argument('-A', '--accessions', nargs='*', default=None,
                         type=list, help="Specify certain projects by accessions to download.")
     parser.add_argument('-C', '--csv', action='store_true', help="Generates a csv file for each available file tuple!")
+    parser.add_argument('-CL', '--csv_location',  nargs='*', default=None,
+                        type=str, help="Relative Location of single unified generated CSV!")
     parser.add_argument('-FE', '--features', default=["Hyperscore", "Charge", "sumI", "norm_high_peak_intensity", "Num_of_Modifications", "Pep_Len", "Num_Pl", 
         "mh(group)", "mh(domain)", "uniqueDM", "uniqueDMppm", "Sum_match_intensities", "Log_sum_match_intensity", "b+_ratio", 
         "b++_ratio", "y+_ratio", "y++_ratio", "b+_count", "b++_count", "y+_count", "y++_count", "b+_long_count", 
@@ -92,7 +97,7 @@ if __name__ == "__main__":
             write_archive_file(archivePath, downloaded_files)
 
     if args.csv:
-        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features)
+        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features, args.csv_location)
 
     if args.json:
         json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)

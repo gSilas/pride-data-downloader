@@ -7,21 +7,23 @@ import urllib
 import shutil
 import logging
 import requests
+import time
+import datetime
 
-log = logging.getLogger(__name__)
-log.setLevel(logging.DEBUG)
+log = logging.getLogger('PrideData')
+# log.setLevel(logging.DEBUG)
 
-handler = logging.FileHandler('debug.log', mode='w')
-handler.setFormatter(logging.Formatter(
-    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-handler.setLevel(logging.DEBUG)
-log.addHandler(handler)
+# handler = logging.FileHandler(log_filename, mode='w')
+# handler.setFormatter(logging.Formatter(
+#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+# handler.setLevel(logging.DEBUG)
+# log.addHandler(handler)
 
-handler = logging.StreamHandler(stream=sys.stdout)
-handler.setFormatter(logging.Formatter(
-    fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-handler.setLevel(logging.INFO)
-log.addHandler(handler)
+# handler = logging.StreamHandler(stream=sys.stdout)
+# handler.setFormatter(logging.Formatter(
+#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+# handler.setLevel(logging.INFO)
+# log.addHandler(handler)
 
 def get_projectlist(args):
     """

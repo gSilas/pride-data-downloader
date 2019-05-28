@@ -1,6 +1,7 @@
 {
     "accessions": ["PXD007612"], 
     "csv": true, 
+    "csv_location": "generated_PXD007612.csv",
     "memory": 0.9, 
     "number": 20, 
     "pages": 1, 
