@@ -17,6 +17,9 @@ from accessors.pride_data import get_filelist, get_projectlist, write_archive_fi
 log = logging.getLogger('PrideData')
 log.setLevel(logging.DEBUG)
 
+if not os.path.exists("logs/"):
+    os.mkdir("logs")
+
 log_filename = 'logs/logging-{}.log'.format(datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S'))
 handler = logging.FileHandler(log_filename, mode='w')
 handler.setFormatter(logging.Formatter(

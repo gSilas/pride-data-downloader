@@ -2,13 +2,14 @@ import xml.sax
 
 class _Result(object):
     """Representation of a PSM"""
-    rank = ''
-    modifications = []
-    sequence = ''
-    experimentalMassToCharge = ''
-    calculatedMassToCharge = ''
-    isDecoy = ''
-    parameters = []
+    def __init__(self):
+        self.rank = ''
+        self.modifications = []
+        self.sequence = ''
+        self.experimentalMassToCharge = ''
+        self.calculatedMassToCharge = ''
+        self.isDecoy = ''
+        self.parameters = []
 
 
 def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod, result_params):
@@ -50,10 +51,8 @@ def make_result(result_spec_ident, result_pep_evid, result_seq, result_mod, resu
         for elem in result_params:
             _internal_result.parameters.append(elem)
         if result_mod:
-            _internal_result.modifications = []
             for mod in result_mod:
                 _internal_result.modifications.append((float(mod[0]), int(mod[1])))
-
     return _internal_result
 
 
@@ -145,9 +144,11 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
             elif "SpectrumIdentificationItem" in self._open_tags:
                 if 'value' in attrs.getNames():
                     if self._current_spec_ident in self._result_ident_params:
+                        #print(self._current_spec_ident, (attrs.getValue('name'), attrs.getValue('value')))
                         self._result_ident_params[self._current_spec_ident].append((attrs.getValue('name'), attrs.getValue('value')))
                     else:
                         self._result_ident_params[self._current_spec_ident] = list()
+                        #print(self._current_spec_ident, (attrs.getValue('name'), attrs.getValue('value')))
                         self._result_ident_params[self._current_spec_ident].append((attrs.getValue('name'), attrs.getValue('value')))
 
         elif name == 'Modification':

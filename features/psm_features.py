@@ -12,27 +12,12 @@ from features.psm_labeler import class_label
 
 log = logging.getLogger("PrideData")
 
-# log.setLevel(logging.DEBUG)
-# handler = logging.FileHandler(log_filename, mode='w')
-# handler.setFormatter(logging.Formatter(
-#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-# handler.setLevel(logging.DEBUG)
-# log.addHandler(handler)
-
-# handler = logging.StreamHandler(stream=sys.stdout)
-# handler.setFormatter(logging.Formatter(
-#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-# handler.setLevel(logging.INFO)
-# log.addHandler(handler)
-
 # constant masses
 mass_water = mass.calculate_mass(formula='H2O')
 mass_hydrogen = mass.calculate_mass(formula='H')
 
 # transforming sequences to masssequences
 # sequence is converted to list containing each amino acids mass
-
-
 def transform_sequence_to_masssequence(sequence, mods):
     """
     Amino acids sequence to masssequence
@@ -359,6 +344,7 @@ class FeatureList(object):
             for param in self.mzid.parameters:
                 if 'Mascot:score' == param[0]:
                     mascot_score = param[1]
+           # log.info(self.mzid.parameters)
 
             self.dictionary = { "Hyperscore": mascot_score, 
                                 "Domain_Id": "UNDEFINED",

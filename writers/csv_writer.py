@@ -14,20 +14,6 @@ import datetime
 
 log = logging.getLogger('PrideData')
 
-# log.setLevel(logging.DEBUG)
-
-# handler = logging.FileHandler(log_filename, mode='w')
-# handler.setFormatter(logging.Formatter(
-#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-# handler.setLevel(logging.DEBUG)
-# log.addHandler(handler)
-
-# handler = logging.StreamHandler(stream=sys.stdout)
-# handler.setFormatter(logging.Formatter(
-#     fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-# handler.setLevel(logging.INFO)
-# log.addHandler(handler)
-
 def writeCSVRows(rows, csvPath, features):
     """ 
     Writes multiple rows to CSV 
@@ -108,44 +94,32 @@ def writeCSVPSMSfromArchive(archivePath, maximalNumberofCores, features = [], cs
 
     csv_files = []
     log.info("Archived Files:")
-
+    
     if csv_location:
         header_written = False
-        for project_id in archived_files:
-            log.info(project_id)
+        csv_path = csv_location
+        log.info('Writing CSV! {}'.format(csv_path))
 
-            processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
-            with Pool(processes=processes) as p:
-                results = p.map(partial(processFunction, features=features), archived_files[project_id])
+    for project_id in archived_files:
+        log.info(project_id)
 
-            log.info('Writing CSV! {}'.format(csv_location))
-            for res in results:
-                if res:
-                    if not header_written:
-                        writeCSVHeader(csv_location, features)
-                        csv_files.append(csv_location)
-                        header_written = True
-                    writeCSVRows(res, csv_location, features)
+        processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
+        with Pool(processes=processes) as p:
+            results = p.map(partial(processFunction, features=features), archived_files[project_id])
 
-    else:
-        for project_id in archived_files:
-            log.info(project_id)
-
-            processes = min(multiprocessing.cpu_count(), maximalNumberofCores)
-            with Pool(processes=processes) as p:
-                results = p.map(partial(processFunction, features=features), archived_files[project_id])
-
+        if not csv_location:
             header_written = False
             csv_path = os.path.join(os.path.dirname(archivePath), str(project_id), str(project_id)+".csv")
             log.info('Writing CSV! {}'.format(csv_path))
-            for res in results:
-                if res:
-                    if not header_written:
-                        writeCSVHeader(csv_path, features)
-                        csv_files.append(csv_path)
-                        header_written = True
-                    writeCSVRows(res, csv_path, features)
         
+        for res in results:
+            if res:
+                if not header_written:
+                    writeCSVHeader(csv_path, features)
+                    csv_files.append(csv_path)
+                    header_written = True
+                writeCSVRows(res, csv_path, features)
+
     return csv_files
       
 def processFunction(files, features):

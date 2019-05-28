@@ -1,6 +1,7 @@
 # PRIDE data
 data_pride
 stats
+logs
 config/config.json
 
 #VSCode
