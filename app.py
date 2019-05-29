@@ -100,7 +100,7 @@ if __name__ == "__main__":
             write_archive_file(archivePath, downloaded_files)
 
     if args.csv:
-        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features, args.csv_location)
+        csv_writer.writeCSVPSMSfromArchive(archivePath, args.cores, args.features, args.csv_location[0])
 
     if args.json:
         json_writer.writeJSONPSMSfromArchive(archivePath, jsonPath)
