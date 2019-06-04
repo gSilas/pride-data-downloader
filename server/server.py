@@ -3,6 +3,7 @@ from gevent.pywsgi import WSGIServer
 from cassandra.cluster import Cluster
 import uuid
 import os
+import json
 
 app = Flask(__name__)
 
@@ -33,7 +34,7 @@ def post_start():
         INSERT INTO CSV_GENERATOR_JOBS (CSV_GENERATOR_JOB_ID, PRIDE_ID, CSV_HDFS_PATH, STATUS, PARAMETER, JOB_RESULT_MESSAGE, PRIDE_PROJECT_INFORMATION)
         VALUES (%s, %s, %s, %s, %s, %s, %s)
         """,
-        (uuid.uuid1(), "", "", 0, str(input_json), "", "")
+        (uuid.uuid1(), "", "", 0, str(json.dumps(input_json)), "", "")
         )
         dictToReturn = {'status': 'inserted input'}
     else:
