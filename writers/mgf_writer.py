@@ -55,6 +55,7 @@ def processFunction(files, path=None, project_id=None, result_file = None):
         mzid = mzid_handler.MZIdentMLHandler().parse(mzidfp)
     except (SAXParseException):
         print("MZID cant be parsed!")
+        return
 
     #log.info('Processing MGF {}'.format(mgffp))
     with open(mgffp, 'r') as mgf_file:
