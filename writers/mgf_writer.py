@@ -10,6 +10,7 @@ import math
 import os
 import time
 import datetime
+from xml.sax._exceptions import SAXParseException;
 
 log = logging.getLogger('PrideData')
 
@@ -50,7 +51,10 @@ def processFunction(files, path=None, project_id=None, result_file = None):
     mgffp: str = files[0]
     mzidfp: str = files[1]
     #log.info('Processing MZID {}'.format(mzidfp))
-    mzid = mzid_handler.MZIdentMLHandler().parse(mzidfp)
+    try: 
+        mzid = mzid_handler.MZIdentMLHandler().parse(mzidfp)
+    except (SAXParseException):
+        print("MZID cant be parsed!")
 
     #log.info('Processing MGF {}'.format(mgffp))
     with open(mgffp, 'r') as mgf_file:
