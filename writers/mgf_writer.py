@@ -63,13 +63,12 @@ def processFunction(files, path=None, project_id=None, result_file = None):
         line: str = mgf_file.readline()
         
         while(line):
-            assert ('BEGIN IONS' in line), "ERROR: mgf in wrong format"
-            # header TITLE
-            line = mgf_file.readline()
-
-            spectrum_index: list = line.split(';')[2][:-1]
-
             try:
+                assert ('BEGIN IONS' in line), "ERROR: mgf in wrong format"
+                # header TITLE
+                line = mgf_file.readline()
+
+                spectrum_index: list = line.split(';')[2][:-1]
 
                 sequence = mzid[spectrum_index]
                 
