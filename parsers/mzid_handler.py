@@ -69,7 +69,7 @@ class MZIdentMLHandler(xml.sax.handler.ContentHandler):
 
 
 if __name__ == "__main__":
-    with open("/home/dan/Documents/Work/PRIDEdata/data_pride/PXD012407/ML_170312_Qex_B03.mzid") as f:
+    with open("../data_pride/PXD014300/LUM00969_VG.mgf.mzid") as f:
         results, parameters = MZIdentMLHandler().parse(f)
         print(results)
         for pep in results:

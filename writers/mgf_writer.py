@@ -1,20 +1,12 @@
-import sys
 import logging
 import csv
-import multiprocessing
-from functools import partial
-from multiprocessing import Pool
-from parsers.mgf_file import parse_mgf
 from parsers import mzid_handler
-import math
 import os
-import time
-import datetime
 from xml.sax._exceptions import SAXParseException;
 
 log = logging.getLogger('PrideData')
 
-def writeMGFSfromArchive(folder, archivePath, maximalNumberofCores):
+def writeMGFSfromArchive(folder, archivePath):
     """ Writes PSMs to MGFS from Archive """
     archived_files = dict()
     with open(archivePath, 'r') as fp:
@@ -26,38 +18,35 @@ def writeMGFSfromArchive(folder, archivePath, maximalNumberofCores):
                 archived_files[row[0]] = list()
                 archived_files[row[0]].append(row[1:])
 
-    csv_files = []
     log.info("Archived Files:")
 
     for project_id in archived_files:
         log.info(project_id)
-        with open(os.path.join(folder, project_id + ".mgf"), 'a+') as res_mgf_file:
+        with open(os.path.join(folder, project_id + ".mgf"), 'w') as res_mgf_file:
             for files in archived_files[project_id]:
-                processFunction(files=files, path=os.path.dirname(archivePath), project_id=project_id, result_file=res_mgf_file)
+                processFunction(file=files, result_file=res_mgf_file)
 
-def processFunction(files, path=None, project_id=None, result_file = None):
+def processFunction(file, result_file = None):
     """ 
     Data-parallel function generating CSV 
     
     Parameters
     ----------
-    files: list
+    file: list
         list of file tuples
         
     """
     
-    mgf_path = os.path.join(path, str(project_id), str(project_id)+".mgf")
-
-    mgffp: str = files[0]
-    mzidfp: str = files[1]
-    #log.info('Processing MZID {}'.format(mzidfp))
+    mgffp: str = file[0]
+    mzidfp: str = file[1]
+    log.info('Processing MZID {}'.format(mzidfp))
     try: 
         mzid = mzid_handler.MZIdentMLHandler().parse(mzidfp)
     except (SAXParseException):
         print("MZID cant be parsed!")
         return
 
-    #log.info('Processing MGF {}'.format(mgffp))
+    log.info('Processing MGF {}'.format(mgffp))
     with open(mgffp, 'r') as mgf_file:
 
         line: str = mgf_file.readline()
@@ -65,16 +54,13 @@ def processFunction(files, path=None, project_id=None, result_file = None):
         while(line):
             try:
                 assert ('BEGIN IONS' in line), "ERROR: mgf in wrong format"
-                # header TITLE
-                line = mgf_file.readline()
 
-                spectrum_index: list = line.split(';')[2][:-1]
-
-                sequence = mzid[spectrum_index]
-                
                 # TITLE
                 title_line = mgf_file.readline()
                 assert ('TITLE' in title_line), "ERROR: TITLE: mgf in wrong format: " + repr(title_line)
+
+                spectrum_index: list = title_line.split(';')[2][:-1]
+                sequence = mzid[spectrum_index]
 
                 # PEPMASS
                 pepmass_line = mgf_file.readline()
@@ -99,13 +85,17 @@ def processFunction(files, path=None, project_id=None, result_file = None):
 
                 line = mgf_file.readline()
 
-            except (KeyError, AssertionError):
-                print(spectrum_index + " missing in mzid")
+            except (KeyError, AssertionError) as e:
+                print(e)
                 print("mzid " + mzidfp)
                 print("mgf " + mgffp)
 
                 while not 'END IONS' in line:
                     line = mgf_file.readline()
+
+                    if line == "": 
+                        print("Extremely fucked up file!")
+                        return
 
                 line = mgf_file.readline()
 
@@ -114,4 +104,4 @@ def processFunction(files, path=None, project_id=None, result_file = None):
 
 
 if __name__ == "__main__":
-    writeMGFSfromArchive("data_pride/archive", 4)
+    writeMGFSfromArchive("", archivePath="../data_pride/archive")

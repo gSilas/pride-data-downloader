@@ -50,14 +50,13 @@ if __name__ == "__main__":
                         type=str, help="Folder containing downloaded data relative to the python script!")
     parser.add_argument('-SUB', '--submission', default="COMPLETE",
                         type=str, help="SubmissionType for projects.")
-    parser.add_argument('-CO', '--cores', default=4, type=int, help="Maximal number of cores!")
     parser.add_argument('-PR', '--process', default=None, type=str, 
                         help="archive file")
 
     args = parser.parse_args()
 
     if args.process: 
-        mgf_writer.writeMGFSfromArchive(args.folder, args.process, args.cores)
+        mgf_writer.writeMGFSfromArchive(args.folder, args.process)
 
     else:
         if args.ini:
