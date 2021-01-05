@@ -26,6 +26,12 @@ def writeMGFSfromArchive(folder, archivePath):
             for files in archived_files[project_id]:
                 processFunction(file=files, result_file=res_mgf_file)
 
+def writeMGFSfromFiles(folder, name, files):
+    """ Writes PSMs to MGFS from Archive """
+    log.info(name)
+    with open(os.path.join(folder, name + ".mgf"), 'w') as res_mgf_file:
+        processFunction(file=files, result_file=res_mgf_file)
+
 def processFunction(file, result_file = None):
     """ 
     Data-parallel function generating CSV 

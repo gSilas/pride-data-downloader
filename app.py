@@ -52,11 +52,20 @@ if __name__ == "__main__":
                         type=str, help="SubmissionType for projects.")
     parser.add_argument('-PR', '--process', default=None, type=str, 
                         help="archive file")
+    parser.add_argument('-MGF', '--mgffile', default=None, type=str, 
+                    help="mgf file")
+    parser.add_argument('-MZID', '--mzidfile', default=None, type=str, 
+                    help="mzid file")
+    parser.add_argument('-NA', '--resultname', default=None, type=str, 
+                    help="name")    
 
     args = parser.parse_args()
 
     if args.process: 
         mgf_writer.writeMGFSfromArchive(args.folder, args.process)
+
+    elif args.mgffile and args.mzidfile and args.name:
+        mgf_writer.writeMGFSfromFiles(args.folder, args.name, [args.mgffile, args.mzidfile])
 
     else:
         if args.ini:
