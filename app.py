@@ -64,8 +64,8 @@ if __name__ == "__main__":
     if args.process: 
         mgf_writer.writeMGFSfromArchive(args.folder, args.process)
 
-    elif args.mgffile and args.mzidfile and args.name:
-        mgf_writer.writeMGFSfromFiles(args.folder, args.name, [args.mgffile, args.mzidfile])
+    elif args.mgffile and args.mzidfile and args.resultname:
+        mgf_writer.writeMGFSfromFiles(args.folder, args.resultname, [args.mgffile, args.mzidfile])
 
     else:
         if args.ini:
