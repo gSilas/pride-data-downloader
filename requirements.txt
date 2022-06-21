@@ -18,7 +18,7 @@ hdfs == 2.5.2
 jsonpickle == 1.0
 
 # features/psm_features.py: 1
-numpy == 1.16.3
+numpy == 1.22.0
 
 # features/psm_features.py: 2,8
 numba == 0.42.0
