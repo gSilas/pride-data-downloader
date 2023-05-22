@@ -27,4 +27,4 @@ numba == 0.42.0
 pyteomics == 4.0.1
 
 # accessors/pride_data.py: 9
-requests == 2.21.0
+requests == 2.31.0
